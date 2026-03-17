@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useEffect } from 'react';
@@ -15,7 +16,8 @@ const DEPOSIT_INFO = {
   USD: [
     { label: 'TRC20 Wallet', value: 'TF3kH28vsP7we5LKk7VoUjh1jZfyXXWCQr' },
     { label: 'Binance ID', value: '582733976' },
-    { label: 'بنك الكريمي (USD)', value: '3104105757' }
+    { label: 'بنك الكريمي (USD)', value: '3104105757' },
+    { label: 'بنك القطيبي (USD)', value: '462175547' }
   ],
   YER: [
     { label: 'بنك القطيبي (YER)', value: '462175547' },

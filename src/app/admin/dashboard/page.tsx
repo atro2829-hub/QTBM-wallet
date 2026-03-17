@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState } from 'react';
@@ -13,7 +14,8 @@ import {
   Trash2,
   CheckCircle2,
   XCircle,
-  Tag
+  Tag,
+  Percent
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { useWalletStore, Currency } from '@/app/lib/store';
@@ -29,7 +31,15 @@ import { cn } from '@/lib/utils';
 export default function AdminDashboard() {
   const { transactions, updateTransactionStatus, products, addProduct, deleteProduct } = useWalletStore();
   const [activeTab, setActiveTab] = useState('transactions');
+  
+  // Product state
   const [newProduct, setNewProduct] = useState({ name: '', price: '', currency: 'USD' as Currency, icon: 'ShoppingBag' });
+  
+  // Offers state
+  const [offers, setOffers] = useState([
+    { id: 'o1', name: 'Winter Discount', description: 'Get 10% off all services', discount: 10, type: 'percentage' },
+  ]);
+  const [newOffer, setNewOffer] = useState({ name: '', description: '', discount: '', type: 'percentage' });
 
   const pendingTransactions = transactions.filter(t => t.status === 'Pending');
 
@@ -47,6 +57,18 @@ export default function AdminDashboard() {
       icon: newProduct.icon
     });
     setNewProduct({ name: '', price: '', currency: 'USD', icon: 'ShoppingBag' });
+  };
+
+  const handleAddOffer = () => {
+    if (!newOffer.name || !newOffer.discount) return;
+    setOffers([...offers, {
+      id: Math.random().toString(36).substr(2, 9),
+      name: newOffer.name,
+      description: newOffer.description,
+      discount: parseFloat(newOffer.discount),
+      type: newOffer.type
+    }]);
+    setNewOffer({ name: '', description: '', discount: '', type: 'percentage' });
   };
 
   return (
@@ -106,6 +128,12 @@ export default function AdminDashboard() {
                     <CardContent className="pt-6">
                       <p className="text-sm font-medium text-muted-foreground">Active Products</p>
                       <h3 className="text-2xl font-bold">{products.length}</h3>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardContent className="pt-6">
+                      <p className="text-sm font-medium text-muted-foreground">Active Offers</p>
+                      <h3 className="text-2xl font-bold">{offers.length}</h3>
                     </CardContent>
                   </Card>
                 </div>
@@ -194,6 +222,67 @@ export default function AdminDashboard() {
                         <Button variant="ghost" size="icon" className="text-red-500" onClick={() => deleteProduct(p.id)}>
                           <Trash2 className="h-5 w-5" />
                         </Button>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </TabsContent>
+
+              <TabsContent value="offers" className="space-y-6">
+                <div className="flex justify-between items-center">
+                  <h3 className="text-xl font-bold">Active Offers</h3>
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <Button className="gap-2"><Plus className="h-4 w-4" /> Create Offer</Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader><DialogTitle>Create Promotional Offer</DialogTitle></DialogHeader>
+                      <div className="space-y-4 py-4">
+                        <div className="space-y-2">
+                          <Label>Offer Name</Label>
+                          <Input value={newOffer.name} onChange={(e) => setNewOffer({...newOffer, name: e.target.value})} placeholder="e.g. Ramadan Special" />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Description</Label>
+                          <Input value={newOffer.description} onChange={(e) => setNewOffer({...newOffer, description: e.target.value})} placeholder="Offer details..." />
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label>Discount Value</Label>
+                            <Input type="number" value={newOffer.discount} onChange={(e) => setNewOffer({...newOffer, discount: e.target.value})} placeholder="10" />
+                          </div>
+                          <div className="space-y-2">
+                            <Label>Type</Label>
+                            <Input value={newOffer.type} readOnly />
+                          </div>
+                        </div>
+                      </div>
+                      <DialogFooter>
+                        <Button onClick={handleAddOffer}>Launch Offer</Button>
+                      </DialogFooter>
+                    </DialogContent>
+                  </Dialog>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {offers.map((offer) => (
+                    <Card key={offer.id} className="border-primary/20 bg-primary/5">
+                      <CardHeader>
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <CardTitle className="text-lg">{offer.name}</CardTitle>
+                            <CardDescription>{offer.description}</CardDescription>
+                          </div>
+                          <div className="bg-primary text-white p-2 rounded-lg font-bold">
+                            -{offer.discount}%
+                          </div>
+                        </div>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="flex justify-end gap-2">
+                          <Button variant="outline" size="sm">Edit</Button>
+                          <Button variant="destructive" size="sm" onClick={() => setOffers(offers.filter(o => o.id !== offer.id))}>Delete</Button>
+                        </div>
                       </CardContent>
                     </Card>
                   ))}

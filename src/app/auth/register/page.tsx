@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState } from 'react';
@@ -9,13 +10,15 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { useAuth } from '@/firebase';
-import { initiateEmailSignUp } from '@/firebase/non-blocking-login';
+import { useAuth, useFirestore } from '@/firebase';
+import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
+import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 
 export default function RegisterPage() {
   const router = useRouter();
   const { toast } = useToast();
   const auth = useAuth();
+  const db = useFirestore();
   const [isLoading, setIsLoading] = useState(false);
 
   const [formData, setFormData] = useState({
@@ -26,7 +29,7 @@ export default function RegisterPage() {
     confirmPassword: ''
   });
 
-  const handleRegister = (e: React.FormEvent) => {
+  const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     if (formData.password !== formData.confirmPassword) {
       toast({ title: "Passwords Mismatch", description: "Please ensure passwords match.", variant: "destructive" });
@@ -34,14 +37,50 @@ export default function RegisterPage() {
     }
 
     setIsLoading(true);
-    // In a real app, we would also save the National ID and Full Name to Firestore
-    initiateEmailSignUp(auth, formData.email, formData.password);
-    
-    // Simulate navigation/success for demo purposes
-    setTimeout(() => {
+    try {
+      const userCredential = await createUserWithEmailAndPassword(auth, formData.email, formData.password);
+      const user = userCredential.user;
+
+      // Update basic Auth profile
+      await updateProfile(user, { displayName: formData.fullName });
+
+      // Create UserProfile document in Firestore
+      const userProfileRef = doc(db, 'users', user.uid);
+      await setDoc(userProfileRef, {
+        id: user.uid,
+        email: formData.email,
+        fullName: formData.fullName,
+        nationalIdNumber: formData.nationalId,
+        preferredTheme: 'light',
+        preferredLanguage: 'EN',
+        role: 'user',
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp()
+      });
+
+      // Initialize Wallet document
+      const walletRef = doc(db, 'users', user.uid, 'wallet', 'wallet');
+      await setDoc(walletRef, {
+        id: 'wallet',
+        userId: user.uid,
+        yerBalance: 0,
+        usdBalance: 0,
+        sarBalance: 0,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp()
+      });
+
       toast({ title: "Account Created", description: "Welcome to QTBM Wallet!" });
       router.push('/dashboard');
-    }, 1500);
+    } catch (error: any) {
+      toast({ 
+        title: "Registration Failed", 
+        description: error.message || "An error occurred during registration.", 
+        variant: "destructive" 
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
