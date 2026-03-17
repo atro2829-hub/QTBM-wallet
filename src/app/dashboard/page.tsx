@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useEffect } from 'react';
@@ -23,32 +22,49 @@ export default function Dashboard() {
   const userProfileRef = useMemoFirebase(() => user ? doc(db, 'users', user.uid) : null, [db, user]);
   const { data: profile, isLoading: profileLoading } = useDoc(userProfileRef);
 
+  // Apply language settings on load
   useEffect(() => {
-    if (!isUserLoading && !profileLoading && (!user || !profile)) {
+    if (profile) {
+      document.documentElement.dir = profile.preferredLanguage === 'AR' ? 'rtl' : 'ltr';
+      document.documentElement.lang = (profile.preferredLanguage || 'EN').toLowerCase();
+      document.documentElement.classList.toggle('dark', profile.preferredTheme === 'dark');
+    }
+  }, [profile]);
+
+  useEffect(() => {
+    if (!isUserLoading && !user) {
       router.push('/auth/login');
     }
-  }, [user, profile, isUserLoading, profileLoading, router]);
+  }, [user, isUserLoading, router]);
 
   const handleLogout = async () => {
     await signOut(auth);
     router.push('/auth/login');
   };
 
-  if (isUserLoading || profileLoading) {
+  if (isUserLoading || (user && profileLoading)) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex flex-col items-center justify-center gap-4">
         <Loader2 className="animate-spin h-8 w-8 text-primary" />
+        <p className="text-sm text-muted-foreground animate-pulse">Synchronizing secure wallet...</p>
       </div>
     );
   }
 
-  if (!user || !profile) {
-    return null;
+  if (!user) return null;
+
+  if (!profile) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center p-8 text-center gap-4">
+        <Loader2 className="animate-spin h-8 w-8 text-primary" />
+        <h2 className="text-xl font-bold">Finalizing Setup</h2>
+        <p className="text-muted-foreground">We're preparing your multi-currency accounts. This usually takes just a few seconds.</p>
+      </div>
+    );
   }
 
   return (
     <div className="min-h-screen bg-background flex flex-col max-w-md mx-auto relative border-x">
-      {/* Header */}
       <header className="p-6 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <Avatar className="h-10 w-10 border-2 border-primary/20">
@@ -56,7 +72,7 @@ export default function Dashboard() {
             <AvatarFallback>{profile.fullName?.charAt(0)}</AvatarFallback>
           </Avatar>
           <div>
-            <p className="text-xs text-muted-foreground">Welcome back,</p>
+            <p className="text-xs text-muted-foreground">{profile.preferredLanguage === 'AR' ? 'مرحباً بك،' : 'Welcome back,'}</p>
             <h1 className="text-lg font-bold leading-none truncate max-w-[150px]">{profile.fullName}</h1>
           </div>
         </div>
@@ -72,7 +88,6 @@ export default function Dashboard() {
         </div>
       </header>
 
-      {/* Wallet Summary */}
       <main className="flex-1 space-y-2 overflow-y-auto">
         <BalanceCarousel />
         
@@ -90,7 +105,7 @@ export default function Dashboard() {
           </div>
         </div>
 
-        <h3 className="px-6 pt-4 text-lg font-bold">Quick Actions</h3>
+        <h3 className="px-6 pt-4 text-lg font-bold">{profile.preferredLanguage === 'AR' ? 'إجراءات سريعة' : 'Quick Actions'}</h3>
         <ActionGrid />
       </main>
 

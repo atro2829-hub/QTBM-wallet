@@ -2,20 +2,17 @@
 
 import React, { useState } from 'react';
 import { 
-  Users, 
-  ArrowUpRight, 
   ArrowDownLeft, 
-  ShoppingBag, 
   LayoutDashboard, 
   Package, 
-  Settings, 
   Plus,
   Trash2,
   CheckCircle2,
   XCircle,
   Tag,
-  Percent,
-  Loader2
+  Loader2,
+  DollarSign,
+  Percent
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -25,15 +22,15 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { cn } from '@/lib/utils';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, doc, updateDoc, deleteDoc, addDoc, serverTimestamp, query, where } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
+import { Badge } from '@/components/ui/badge';
 
 export default function AdminDashboard() {
   const db = useFirestore();
   const { toast } = useToast();
-  const [activeTab, setActiveTab] = useState('transactions');
+  const [activeTab, setActiveTab] = useState('approvals');
   
   // Products collection
   const productsQuery = useMemoFirebase(() => collection(db, 'products'), [db]);
@@ -51,19 +48,15 @@ export default function AdminDashboard() {
 
   // Form states
   const [newProduct, setNewProduct] = useState({ name: '', price: '', currency: 'USD', description: '' });
-  const [newOffer, setNewOffer] = useState({ name: '', description: '', discount: '', isActive: true });
+  const [newOffer, setNewOffer] = useState({ name: '', description: '', discountPercentage: '', fixedDiscountAmount: '', currency: 'USD' });
 
-  const handleApprove = async (requestId: string, userId: string, amount: number, currency: string) => {
+  const handleApprove = async (requestId: string) => {
     try {
-      // 1. Update the request status
       const requestRef = doc(db, 'depositRequests', requestId);
       await updateDoc(requestRef, {
         status: 'approved',
         processedAt: serverTimestamp()
       });
-
-      // 2. Update user's wallet (This logic should ideally be a Cloud Function, but for MVP we update here)
-      // Note: Real balance updates should use transactions/atomicity
       toast({ title: "Approved", description: "Request marked as approved." });
     } catch (error: any) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
@@ -103,10 +96,23 @@ export default function AdminDashboard() {
     }
   };
 
-  const handleDeleteProduct = async (id: string) => {
+  const handleAddOffer = async () => {
+    if (!newOffer.name || (!newOffer.discountPercentage && !newOffer.fixedDiscountAmount)) return;
     try {
-      await deleteDoc(doc(db, 'products', id));
-      toast({ title: "Deleted", description: "Product removed." });
+      await addDoc(collection(db, 'offers'), {
+        name: newOffer.name,
+        description: newOffer.description,
+        discountPercentage: newOffer.discountPercentage ? [parseFloat(newOffer.discountPercentage)] : [],
+        fixedDiscountAmount: newOffer.fixedDiscountAmount ? [parseFloat(newOffer.fixedDiscountAmount)] : [],
+        currency: [newOffer.currency],
+        isActive: true,
+        startDate: serverTimestamp(),
+        endDate: serverTimestamp(), // Admin should set proper dates in a full UI
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp()
+      });
+      setNewOffer({ name: '', description: '', discountPercentage: '', fixedDiscountAmount: '', currency: 'USD' });
+      toast({ title: "Success", description: "Promotional offer created." });
     } catch (error: any) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     }
@@ -125,7 +131,7 @@ export default function AdminDashboard() {
           <SidebarContent>
             <SidebarMenu className="px-4">
               <SidebarMenuItem>
-                <SidebarMenuButton isActive={activeTab === 'transactions'} onClick={() => setActiveTab('transactions')}>
+                <SidebarMenuButton isActive={activeTab === 'approvals'} onClick={() => setActiveTab('approvals')}>
                   <ArrowDownLeft className="h-4 w-4" />
                   <span>Approvals</span>
                 </SidebarMenuButton>
@@ -133,13 +139,13 @@ export default function AdminDashboard() {
               <SidebarMenuItem>
                 <SidebarMenuButton isActive={activeTab === 'products'} onClick={() => setActiveTab('products')}>
                   <Package className="h-4 w-4" />
-                  <span>Products</span>
+                  <span>Products & Prices</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
                 <SidebarMenuButton isActive={activeTab === 'offers'} onClick={() => setActiveTab('offers')}>
                   <Tag className="h-4 w-4" />
-                  <span>Offers</span>
+                  <span>Offers & Discounts</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
             </SidebarMenu>
@@ -157,7 +163,7 @@ export default function AdminDashboard() {
 
           <main className="p-8 space-y-8">
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-              <TabsContent value="transactions" className="space-y-6">
+              <TabsContent value="approvals" className="space-y-6">
                 <Card>
                   <CardHeader>
                     <CardTitle>Approvals Needed</CardTitle>
@@ -185,7 +191,7 @@ export default function AdminDashboard() {
                                 <td className="px-6 py-4 font-bold">{req.amount} {req.currency}</td>
                                 <td className="px-6 py-4 text-right">
                                   <div className="flex justify-end gap-2">
-                                    <Button variant="ghost" size="icon" className="text-green-600" onClick={() => handleApprove(req.id, req.userId, req.amount, req.currency)}>
+                                    <Button variant="ghost" size="icon" className="text-green-600" onClick={() => handleApprove(req.id)}>
                                       <CheckCircle2 className="h-5 w-5" />
                                     </Button>
                                     <Button variant="ghost" size="icon" className="text-red-600" onClick={() => handleReject(req.id)}>
@@ -231,7 +237,7 @@ export default function AdminDashboard() {
                           </div>
                           <div className="space-y-2">
                             <Label>Currency</Label>
-                            <Input value={newProduct.currency} readOnly />
+                            <Input value={newProduct.currency} onChange={(e) => setNewProduct({...newProduct, currency: e.target.value})} placeholder="USD, YER, SAR" />
                           </div>
                         </div>
                       </div>
@@ -254,7 +260,7 @@ export default function AdminDashboard() {
                             <p className="text-xs text-muted-foreground mb-2">{p.description}</p>
                             <p className="text-primary font-bold">{p.price} {p.currency}</p>
                           </div>
-                          <Button variant="ghost" size="icon" className="text-red-500" onClick={() => handleDeleteProduct(p.id)}>
+                          <Button variant="ghost" size="icon" className="text-red-500" onClick={() => deleteDoc(doc(db, 'products', p.id))}>
                             <Trash2 className="h-5 w-5" />
                           </Button>
                         </CardContent>
@@ -266,8 +272,44 @@ export default function AdminDashboard() {
 
               <TabsContent value="offers" className="space-y-6">
                 <div className="flex justify-between items-center">
-                  <h3 className="text-xl font-bold">Active Offers</h3>
-                  {/* Offer creation dialog can be implemented similarly */}
+                  <h3 className="text-xl font-bold">Promotional Offers</h3>
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <Button className="gap-2"><Plus className="h-4 w-4" /> Add Offer</Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader><DialogTitle>Create New Offer</DialogTitle></DialogHeader>
+                      <div className="space-y-4 py-4">
+                        <div className="space-y-2">
+                          <Label>Offer Name</Label>
+                          <Input value={newOffer.name} onChange={(e) => setNewOffer({...newOffer, name: e.target.value})} placeholder="e.g. Ramadan Special" />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Description</Label>
+                          <Input value={newOffer.description} onChange={(e) => setNewOffer({...newOffer, description: e.target.value})} placeholder="Details of the promo" />
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label>Discount %</Label>
+                            <div className="relative">
+                              <Percent className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                              <Input className="pl-10" type="number" value={newOffer.discountPercentage} onChange={(e) => setNewOffer({...newOffer, discountPercentage: e.target.value})} placeholder="10" />
+                            </div>
+                          </div>
+                          <div className="space-y-2">
+                            <Label>Fixed Discount</Label>
+                            <div className="relative">
+                              <DollarSign className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                              <Input className="pl-10" type="number" value={newOffer.fixedDiscountAmount} onChange={(e) => setNewOffer({...newOffer, fixedDiscountAmount: e.target.value})} placeholder="5.00" />
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      <DialogFooter>
+                        <Button onClick={handleAddOffer}>Launch Offer</Button>
+                      </DialogFooter>
+                    </DialogContent>
+                  </Dialog>
                 </div>
 
                 {offersLoading ? (
@@ -278,21 +320,31 @@ export default function AdminDashboard() {
                       <Card key={offer.id} className="border-primary/20 bg-primary/5">
                         <CardHeader>
                           <div className="flex justify-between items-start">
-                            <div>
-                              <CardTitle className="text-lg">{offer.name}</CardTitle>
-                              <CardDescription>{offer.description}</CardDescription>
-                            </div>
-                            {offer.discountPercentage && (
-                              <div className="bg-primary text-white p-2 rounded-lg font-bold">
-                                -{offer.discountPercentage}%
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2">
+                                <CardTitle className="text-lg">{offer.name}</CardTitle>
+                                <Badge variant="secondary">Active</Badge>
                               </div>
-                            )}
+                              <CardDescription className="mt-1">{offer.description}</CardDescription>
+                            </div>
+                            <div className="text-right">
+                              {offer.discountPercentage?.length > 0 && (
+                                <div className="bg-primary text-white p-2 rounded-lg font-bold">
+                                  -{offer.discountPercentage[0]}%
+                                </div>
+                              )}
+                              {offer.fixedDiscountAmount?.length > 0 && (
+                                <div className="bg-primary text-white p-2 rounded-lg font-bold">
+                                  -{offer.fixedDiscountAmount[0]} {offer.currency?.[0] || 'USD'}
+                                </div>
+                              )}
+                            </div>
                           </div>
                         </CardHeader>
-                        <CardContent>
-                          <div className="flex justify-end gap-2">
-                            <Button variant="destructive" size="sm" onClick={() => deleteDoc(doc(db, 'offers', offer.id))}>Delete</Button>
-                          </div>
+                        <CardContent className="flex justify-end border-t pt-4">
+                          <Button variant="ghost" size="sm" className="text-red-500" onClick={() => deleteDoc(doc(db, 'offers', offer.id))}>
+                            Remove Offer
+                          </Button>
                         </CardContent>
                       </Card>
                     ))}
