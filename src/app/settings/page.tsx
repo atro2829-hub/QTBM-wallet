@@ -1,6 +1,7 @@
+
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { 
   ArrowLeft, 
@@ -8,38 +9,68 @@ import {
   Shield, 
   Moon, 
   Sun, 
-  HelpCircle, 
   LogOut, 
   ChevronRight,
-  Bell,
-  Globe,
-  Languages
+  Languages,
+  Loader2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { BottomNav } from '@/components/layout/BottomNav';
-import { useWalletStore } from '@/app/lib/store';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useUser, useFirestore, useDoc } from '@/firebase';
+import { doc, updateDoc } from 'firebase/firestore';
+import { signOut } from 'firebase/auth';
+import { useAuth } from '@/firebase';
 
 export default function SettingsPage() {
   const router = useRouter();
-  const { user } = useWalletStore();
+  const { user } = useUser();
+  const auth = useAuth();
+  const db = useFirestore();
+  
+  const userProfileRef = React.useMemo(() => user ? doc(db, 'users', user.uid) : null, [db, user]);
+  const { data: profile, isLoading: isProfileLoading } = useDoc(userProfileRef);
+
   const [darkMode, setDarkMode] = useState(false);
   const [language, setLanguage] = useState('EN');
 
-  const toggleDarkMode = (checked: boolean) => {
+  useEffect(() => {
+    if (profile) {
+      setDarkMode(profile.preferredTheme === 'dark');
+      setLanguage(profile.preferredLanguage || 'EN');
+      
+      // Apply theme/language classes
+      document.documentElement.classList.toggle('dark', profile.preferredTheme === 'dark');
+      document.documentElement.dir = profile.preferredLanguage === 'AR' ? 'rtl' : 'ltr';
+      document.documentElement.lang = (profile.preferredLanguage || 'EN').toLowerCase();
+    }
+  }, [profile]);
+
+  const toggleDarkMode = async (checked: boolean) => {
+    if (!user) return;
     setDarkMode(checked);
-    document.documentElement.classList.toggle('dark', checked);
+    await updateDoc(doc(db, 'users', user.uid), {
+      preferredTheme: checked ? 'dark' : 'light'
+    });
   };
 
-  const handleLanguageChange = (val: string) => {
+  const handleLanguageChange = async (val: string) => {
+    if (!user) return;
     setLanguage(val);
-    document.documentElement.dir = val === 'AR' ? 'rtl' : 'ltr';
-    document.documentElement.lang = val.toLowerCase();
+    await updateDoc(doc(db, 'users', user.uid), {
+      preferredLanguage: val
+    });
   };
 
-  if (!user) return null;
+  const handleLogout = async () => {
+    await signOut(auth);
+    router.push('/auth/login');
+  };
+
+  if (isProfileLoading) return <div className="flex items-center justify-center min-h-screen"><Loader2 className="animate-spin" /></div>;
+  if (!user || !profile) return null;
 
   return (
     <div className="min-h-screen bg-background flex flex-col max-w-md mx-auto relative border-x pb-24">
@@ -54,10 +85,10 @@ export default function SettingsPage() {
         <div className="flex flex-col items-center py-4">
           <Avatar className="h-20 w-20 border-2 border-primary/20 mb-3">
             <AvatarImage src={`https://picsum.photos/seed/${user.uid}/200/200`} />
-            <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
+            <AvatarFallback>{profile.fullName?.charAt(0)}</AvatarFallback>
           </Avatar>
-          <h2 className="text-lg font-bold">{user.name}</h2>
-          <p className="text-xs text-muted-foreground">{user.email}</p>
+          <h2 className="text-lg font-bold">{profile.fullName}</h2>
+          <p className="text-xs text-muted-foreground">{profile.email}</p>
         </div>
 
         <div className="space-y-4">
@@ -103,19 +134,10 @@ export default function SettingsPage() {
               </div>
               <ChevronRight className="h-4 w-4 text-muted-foreground" />
             </div>
-            <div className="p-4 flex items-center justify-between active:bg-accent transition-colors cursor-pointer">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-accent rounded-xl">
-                  <Shield className="h-5 w-5 text-slate-600" />
-                </div>
-                <span className="text-sm font-bold">Security</span>
-              </div>
-              <ChevronRight className="h-4 w-4 text-muted-foreground" />
-            </div>
           </div>
         </div>
 
-        <Button variant="destructive" className="w-full h-12 rounded-2xl gap-2 font-bold mt-8" onClick={() => router.push('/auth/login')}>
+        <Button variant="destructive" className="w-full h-12 rounded-2xl gap-2 font-bold mt-8" onClick={handleLogout}>
           <LogOut className="h-5 w-5" />
           Logout
         </Button>

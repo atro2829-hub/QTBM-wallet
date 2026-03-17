@@ -3,14 +3,15 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { ArrowLeft, Wallet, Copy, Info, CheckCircle2, QrCode } from 'lucide-react';
+import { ArrowLeft, Wallet, Copy, Info, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useWalletStore, Currency } from '@/app/lib/store';
 import { useToast } from '@/hooks/use-toast';
+import { useFirestore, useUser } from '@/firebase';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 
 const DEPOSIT_INFO = {
   USD: [
@@ -32,44 +33,65 @@ const DEPOSIT_INFO = {
 export default function DepositPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { addTransaction } = useWalletStore();
+  const { user } = useUser();
+  const db = useFirestore();
   const { toast } = useToast();
 
+  const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
     amount: '',
-    currency: 'USD' as Currency,
-    txHash: '',
+    currency: 'USD',
+    txDetails: '',
   });
 
   useEffect(() => {
     const amount = searchParams.get('amount');
     const currency = searchParams.get('currency');
-    if (amount || currency) {
-      setFormData(prev => ({
-        ...prev,
-        amount: amount || '',
-        currency: (currency as Currency) || 'USD',
-      }));
-    }
+    if (amount) setFormData(prev => ({ ...prev, amount }));
+    if (currency) setFormData(prev => ({ ...prev, currency }));
   }, [searchParams]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!user) return;
+    
     const amount = parseFloat(formData.amount);
-    if (isNaN(amount) || amount <= 0) return;
+    if (isNaN(amount) || amount <= 0) {
+      toast({ title: "Invalid Amount", variant: "destructive" });
+      return;
+    }
 
-    addTransaction({
-      id: Math.random().toString(36).substr(2, 9),
-      type: 'deposit',
-      description: `Deposit via ${formData.currency}`,
-      amount: amount,
-      currency: formData.currency,
-      status: 'Pending',
-      date: new Date().toISOString(),
-    });
+    setIsLoading(true);
+    try {
+      // Create Deposit Request in global collection for admin to see
+      await addDoc(collection(db, 'depositRequests'), {
+        userId: user.uid,
+        amount: amount,
+        currency: formData.currency,
+        externalTransactionDetails: formData.txDetails,
+        destinationAccountIdentifier: DEPOSIT_INFO[formData.currency as keyof typeof DEPOSIT_INFO][0].value,
+        status: 'pending',
+        submissionDate: serverTimestamp(),
+      });
 
-    toast({ title: "Deposit Request Submitted", description: "Our team will verify the transaction and update your balance soon." });
-    router.push('/dashboard');
+      // Also record in user's transactions
+      await addDoc(collection(db, 'users', user.uid, 'transactions'), {
+        initiatorUserId: user.uid,
+        type: 'deposit',
+        amount: amount,
+        currency: formData.currency,
+        description: `Deposit via ${formData.currency}`,
+        status: 'Pending',
+        createdAt: serverTimestamp(),
+      });
+
+      toast({ title: "Deposit Request Submitted", description: "Our team will verify the transaction soon." });
+      router.push('/dashboard');
+    } catch (error: any) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const copyToClipboard = (text: string) => {
@@ -100,7 +122,7 @@ export default function DepositPage() {
               <Label className="text-white/80">Selected Currency</Label>
               <Select 
                 value={formData.currency} 
-                onValueChange={(val) => setFormData({...formData, currency: val as Currency})}
+                onValueChange={(val) => setFormData({...formData, currency: val})}
               >
                 <SelectTrigger className="bg-white/10 border-white/20 text-white">
                   <SelectValue />
@@ -114,7 +136,7 @@ export default function DepositPage() {
             </div>
             
             <div className="space-y-3">
-              {DEPOSIT_INFO[formData.currency].map((info, idx) => (
+              {DEPOSIT_INFO[formData.currency as keyof typeof DEPOSIT_INFO]?.map((info, idx) => (
                 <div key={idx} className="bg-white/10 rounded-xl p-4 space-y-2 border border-white/20">
                   <p className="text-[10px] uppercase font-bold text-white/60 tracking-wider">{info.label}</p>
                   <div className="flex items-center justify-between gap-2">
@@ -127,7 +149,6 @@ export default function DepositPage() {
               ))}
             </div>
           </CardContent>
-          <div className="absolute -bottom-10 -right-10 w-32 h-32 bg-white/5 rounded-full blur-2xl pointer-events-none" />
         </Card>
 
         <Card className="shadow-lg border-none">
@@ -150,25 +171,18 @@ export default function DepositPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="txHash">Transaction ID / Notice Number</Label>
+                <Label htmlFor="txDetails">Transaction ID / Notice Number</Label>
                 <Input 
-                  id="txHash" 
+                  id="txDetails" 
                   placeholder="Paste transaction ID or notice number" 
-                  value={formData.txHash}
-                  onChange={(e) => setFormData({...formData, txHash: e.target.value})}
+                  value={formData.txDetails}
+                  onChange={(e) => setFormData({...formData, txDetails: e.target.value})}
                   required 
                 />
               </div>
 
-              <div className="p-4 bg-accent/50 rounded-xl flex gap-3">
-                <Info className="h-5 w-5 text-primary shrink-0" />
-                <p className="text-xs text-muted-foreground leading-relaxed">
-                  Your deposit will be credited once confirmed by our staff. Typical processing time is 5-15 minutes.
-                </p>
-              </div>
-
-              <Button type="submit" className="w-full h-12 text-md font-bold">
-                Submit Request
+              <Button type="submit" className="w-full h-12 text-md font-bold" disabled={isLoading}>
+                {isLoading ? <Loader2 className="animate-spin h-5 w-5" /> : "Submit Request"}
               </Button>
             </form>
           </CardContent>
