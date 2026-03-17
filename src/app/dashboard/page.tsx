@@ -1,3 +1,4 @@
+
 "use client";
 
 import React from 'react';
@@ -8,7 +9,8 @@ import { BottomNav } from '@/components/layout/BottomNav';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
-import { doc, signOut } from 'firebase/auth';
+import { signOut } from 'firebase/auth';
+import { doc } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/firebase';
 
@@ -22,7 +24,7 @@ export default function Dashboard() {
   const { data: profile, isLoading: profileLoading } = useDoc(userProfileRef);
 
   const handleLogout = async () => {
-    await auth.signOut();
+    await signOut(auth);
     router.push('/auth/login');
   };
 
