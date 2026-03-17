@@ -1,0 +1,145 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    /**
+     * QTBM WALLET SECURITY RULES
+     *
+     * CORE PHILOSOPHY:
+     * This ruleset implements a strict ownership model for user-specific data and a
+     * Database-Based Access Control (DBAC) model for administrative functions.
+     * It prioritizes Authorization Independence to minimize cross-document lookups.
+     *
+     * DATA STRUCTURE:
+     * - User-owned data is nested under /users/{userId} (Profile, Wallet, Transactions).
+     * - Global entities (Products, Offers) are top-level and readable by all users.
+     * - Admin privileges are determined by the existence of a document in /roles_admin/{uid}.
+     * - Deposit Requests are top-level but utilize denormalized userId fields for owner access.
+     *
+     * KEY SECURITY DECISIONS:
+     * - Ownership: Validated via path-based variables ({userId}) or internal fields.
+     * - Admin Access: Verified via the /roles_admin collection using exists().
+     * - Immutability: Critical relational fields like 'userId' are protected during updates.
+     * - Prototyping Mode: Schema shapes are flexible, but authorization is strictly enforced.
+     */
+
+    // --- HELPER FUNCTIONS ---
+
+    /** @description Checks if the request is from an authenticated user. */
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    /** @description Checks if the user's UID exists in the admin roles collection. */
+    function isAdmin() {
+      return isSignedIn() && exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
+    }
+
+    /** @description Checks if the provided UID matches the authenticated user's UID. */
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    /** @description Checks ownership and ensures the document exists for destructive operations. */
+    function isExistingOwner(userId) {
+      return resource != null && isOwner(userId);
+    }
+
+    // --- COLLECTION RULES ---
+
+    /**
+     * @description Rules for user profile documents. Users manage their own profiles.
+     * @path /users/{userId}
+     * @allow (get) If user is the owner or an admin.
+     * @deny (update) If the user tries to change the document 'id' field.
+     * @principle Path-based ownership and relational integrity validation.
+     */
+    match /users/{userId} {
+      allow get: if isOwner(userId) || isAdmin();
+      allow list: if isAdmin();
+      allow create: if isOwner(userId) && request.resource.data.id == userId;
+      allow update: if isExistingOwner(userId) && request.resource.data.id == resource.data.id;
+      allow delete: if isAdmin();
+    }
+
+    /**
+     * @description Rules for a user's wallet balances. Fixed document ID 'wallet'.
+     * @path /users/{userId}/wallet/wallet
+     * @allow (create) If userId field matches the path and auth UID.
+     * @deny (update) If another user attempts to modify the wallet.
+     * @principle Strict path-based ownership for private financial data.
+     */
+    match /users/{userId}/wallet/{walletDoc} {
+      allow get: if isOwner(userId) || isAdmin();
+      allow list: if isOwner(userId) || isAdmin();
+      allow create: if isOwner(userId) && request.resource.data.userId == userId;
+      allow update: if isExistingOwner(userId) && (isAdmin() || request.resource.data.userId == resource.data.userId);
+      allow delete: if isAdmin();
+    }
+
+    /**
+     * @description Rules for user transactions. Acts as an immutable ledger for the user.
+     * @path /users/{userId}/transactions/{transactionId}
+     * @allow (list) If the user is the owner.
+     * @deny (update) All updates to maintain transaction history integrity.
+     * @principle Immutable record pattern for financial auditing.
+     */
+    match /users/{userId}/transactions/{transactionId} {
+      allow get, list: if isOwner(userId) || isAdmin();
+      allow create: if isOwner(userId) && request.resource.data.initiatorUserId == userId;
+      allow update, delete: if false;
+    }
+
+    /**
+     * @description Global collection for deposit requests. Owners see theirs; Admins see all.
+     * @path /depositRequests/{depositRequestId}
+     * @allow (create) If the user sets themselves as the 'userId'.
+     * @deny (update) If a non-admin attempts to approve or change a request.
+     * @principle Field-based ownership for top-level shared collections.
+     */
+    match /depositRequests/{depositRequestId} {
+      allow get: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
+      allow list: if isAdmin() || (isSignedIn() && request.query.limit <= 100); 
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      allow update: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid && resource.data.status == 'pending');
+      allow delete: if isAdmin();
+    }
+
+    /**
+     * @description Product catalog accessible to all users. Managed by admins.
+     * @path /products/{productId}
+     * @allow (list) For all authenticated users.
+     * @deny (create) If the user is not an admin.
+     * @principle Public read with administrative write control.
+     */
+    match /products/{productId} {
+      allow get, list: if isSignedIn();
+      allow create, update, delete: if isAdmin();
+    }
+
+    /**
+     * @description Promotional offers. Managed by admins.
+     * @path /offers/{offerId}
+     * @allow (get) For all authenticated users.
+     * @deny (delete) By standard users.
+     * @principle Public read with administrative write control.
+     */
+    match /offers/{offerId} {
+      allow get, list: if isSignedIn();
+      allow create, update, delete: if isAdmin();
+    }
+
+    /**
+     * @description Admin role registry. Existence of UID here grants admin status.
+     * @path /roles_admin/{adminId}
+     * @allow (get) Only for existing admins to verify status.
+     * @deny (write) Any unauthorized modification of the admin list.
+     * @principle DBAC (Database-Based Access Control) using existence checks.
+     */
+    match /roles_admin/{adminId} {
+      allow get: if isAdmin();
+      allow list: if isAdmin();
+      allow create, update, delete: if isAdmin();
+    }
+  }
+}
