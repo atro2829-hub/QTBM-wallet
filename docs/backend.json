@@ -1,3 +1,4 @@
+
 {
   "entities": {
     "UserProfile": {
@@ -12,46 +13,47 @@
         },
         "email": {
           "type": "string",
-          "description": "The user's email address, used for identification. (Not for authentication data storage, which is handled externally).",
+          "description": "The user's email address.",
           "format": "email"
         },
         "fullName": {
           "type": "string",
-          "description": "The full name of the user."
+          "description": "The full legal name of the user."
+        },
+        "phoneNumber": {
+          "type": "string",
+          "description": "The user's contact phone number."
+        },
+        "address": {
+          "type": "string",
+          "description": "The user's residential address."
+        },
+        "city": {
+          "type": "string",
+          "description": "The user's city of residence."
         },
         "nationalIdNumber": {
           "type": "string",
-          "description": "The user's national identification number, provided during registration."
+          "description": "The user's national identification number."
         },
         "preferredTheme": {
           "type": "string",
-          "description": "The user's preferred application theme (light or dark mode).",
-          "items": {
-            "type": "string"
-          }
+          "description": "The user's preferred application theme (light or dark mode)."
         },
         "preferredLanguage": {
           "type": "string",
-          "description": "The user's preferred display language (English or Arabic).",
-          "items": {
-            "type": "string"
-          }
+          "description": "The user's preferred display language (English or Arabic)."
         },
         "role": {
           "type": "string",
-          "description": "The user's role within the application, determining access levels (e.g., 'user' or 'admin').",
-          "items": {
-            "type": "string"
-          }
+          "description": "The user's role (e.g., 'user' or 'admin')."
         },
         "createdAt": {
           "type": "string",
-          "description": "Timestamp when the user profile was created.",
           "format": "date-time"
         },
         "updatedAt": {
           "type": "string",
-          "description": "Timestamp when the user profile was last updated.",
           "format": "date-time"
         }
       },
@@ -59,6 +61,9 @@
         "id",
         "email",
         "fullName",
+        "phoneNumber",
+        "address",
+        "city",
         "nationalIdNumber",
         "preferredTheme",
         "preferredLanguage",
@@ -74,42 +79,26 @@
       "description": "Stores the multi-currency balances for a specific user.",
       "properties": {
         "id": {
-          "type": "string",
-          "description": "Unique identifier for the Wallet entity."
+          "type": "string"
         },
         "userId": {
-          "type": "string",
-          "description": "Reference to the UserProfile this wallet belongs to. (Relationship: UserProfile 1:1 Wallet)"
+          "type": "string"
         },
         "yerBalance": {
-          "type": "number",
-          "description": "Current balance in Yemeni Rial (YER).",
-          "items": {
-            "type": "number"
-          }
+          "type": "number"
         },
         "usdBalance": {
-          "type": "number",
-          "description": "Current balance in US Dollar (USD).",
-          "items": {
-            "type": "number"
-          }
+          "type": "number"
         },
         "sarBalance": {
-          "type": "number",
-          "description": "Current balance in Saudi Riyal (SAR).",
-          "items": {
-            "type": "number"
-          }
+          "type": "number"
         },
         "createdAt": {
           "type": "string",
-          "description": "Timestamp when the wallet was created.",
           "format": "date-time"
         },
         "updatedAt": {
           "type": "string",
-          "description": "Timestamp when the wallet was last updated.",
           "format": "date-time"
         }
       },
@@ -127,77 +116,31 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Transaction",
       "type": "object",
-      "description": "Records all financial movements within the QTBM Wallet, including deposits, peer-to-peer transfers, and service payments.",
       "properties": {
         "id": {
-          "type": "string",
-          "description": "Unique identifier for the Transaction entity."
+          "type": "string"
         },
         "initiatorUserId": {
-          "type": "string",
-          "description": "Reference to the UserProfile who initiated this transaction. (Relationship: UserProfile 1:N Transaction)"
+          "type": "string"
         },
         "type": {
-          "type": "string",
-          "description": "The type of financial transaction.",
-          "items": {
-            "type": "string"
-          }
+          "type": "string"
         },
         "currency": {
-          "type": "string",
-          "description": "The currency in which the transaction was made.",
-          "items": {
-            "type": "string"
-          }
+          "type": "string"
         },
         "amount": {
-          "type": "number",
-          "description": "The amount of money involved in the transaction."
+          "type": "number"
         },
         "description": {
-          "type": "string",
-          "description": "A brief description or name for the transaction."
+          "type": "string"
         },
         "status": {
-          "type": "string",
-          "description": "The current status of the transaction (e.g., pending admin approval, completed, failed, rejected).",
-          "items": {
-            "type": "string"
-          }
+          "type": "string"
         },
         "createdAt": {
           "type": "string",
-          "description": "Timestamp when the transaction was created.",
           "format": "date-time"
-        },
-        "senderUserId": {
-          "type": "array",
-          "description": "Reference to the UserProfile who sent funds, if applicable (e.g., P2P transfer sender). (Relationship: UserProfile 1:N Transaction)",
-          "items": {
-            "type": "string"
-          }
-        },
-        "recipientUserId": {
-          "type": "array",
-          "description": "Reference to the UserProfile who received funds, if applicable (e.g., P2P transfer recipient). (Relationship: UserProfile 1:N Transaction)",
-          "items": {
-            "type": "string"
-          }
-        },
-        "productId": {
-          "type": "array",
-          "description": "Reference to the Product purchased, if applicable (for service payments). (Relationship: Product 1:N Transaction)",
-          "items": {
-            "type": "string"
-          }
-        },
-        "depositRequestId": {
-          "type": "array",
-          "description": "Reference to the DepositRequest that initiated this deposit transaction, if applicable. (Relationship: DepositRequest 1:1 Transaction)",
-          "items": {
-            "type": "string"
-          }
         }
       },
       "required": [
@@ -215,76 +158,28 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "DepositRequest",
       "type": "object",
-      "description": "Details of a user's request to deposit funds into their wallet, awaiting admin verification.",
       "properties": {
         "id": {
-          "type": "string",
-          "description": "Unique identifier for the DepositRequest entity."
+          "type": "string"
         },
         "userId": {
-          "type": "string",
-          "description": "Reference to the UserProfile who made the deposit request. (Relationship: UserProfile 1:N DepositRequest)"
+          "type": "string"
         },
         "currency": {
-          "type": "string",
-          "description": "The currency of the requested deposit.",
-          "items": {
-            "type": "string"
-          }
+          "type": "string"
         },
         "amount": {
-          "type": "number",
-          "description": "The amount of funds requested to be deposited."
+          "type": "number"
         },
         "externalTransactionDetails": {
-          "type": "string",
-          "description": "Details of the external transaction made by the user (e.g., external transaction ID, sender's bank details)."
-        },
-        "destinationAccountIdentifier": {
-          "type": "string",
-          "description": "The identifier of the QTBM wallet's external account (bank account, crypto address) to which the user sent funds. This is a configurable static value like 'TF3kH28vsP7we5LKk7VoUjh1jZfyXXWCQr' or '462175547'."
-        },
-        "proofImageUrl": {
-          "type": "array",
-          "description": "Optional URL to an image serving as proof of the external deposit.",
-          "format": "uri",
-          "items": {
-            "type": "string"
-          }
+          "type": "string"
         },
         "status": {
-          "type": "string",
-          "description": "The current status of the deposit request (pending, approved, or rejected by admin).",
-          "items": {
-            "type": "string"
-          }
+          "type": "string"
         },
         "submissionDate": {
           "type": "string",
-          "description": "Timestamp when the deposit request was submitted.",
           "format": "date-time"
-        },
-        "adminNotes": {
-          "type": "array",
-          "description": "Notes added by an administrator during the review process.",
-          "items": {
-            "type": "string"
-          }
-        },
-        "processedByAdminId": {
-          "type": "array",
-          "description": "Reference to the UserProfile (admin) who processed this deposit request. (Relationship: UserProfile 0:1 DepositRequest)",
-          "items": {
-            "type": "string"
-          }
-        },
-        "processedAt": {
-          "type": "array",
-          "description": "Timestamp when the deposit request was processed (approved or rejected) by an admin.",
-          "format": "date-time",
-          "items": {
-            "type": "string"
-          }
         }
       },
       "required": [
@@ -293,7 +188,6 @@
         "currency",
         "amount",
         "externalTransactionDetails",
-        "destinationAccountIdentifier",
         "status",
         "submissionDate"
       ]
@@ -302,48 +196,30 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Product",
       "type": "object",
-      "description": "Represents a digital product or service available for purchase within the QTBM Wallet app.",
       "properties": {
         "id": {
-          "type": "string",
-          "description": "Unique identifier for the Product entity."
+          "type": "string"
         },
         "name": {
-          "type": "string",
-          "description": "The name of the product or service."
+          "type": "string"
         },
         "description": {
-          "type": "string",
-          "description": "A detailed description of the product or service."
+          "type": "string"
         },
         "price": {
-          "type": "number",
-          "description": "The base price of the product."
+          "type": "number"
         },
         "currency": {
-          "type": "string",
-          "description": "The currency in which the product is priced.",
-          "items": {
-            "type": "string"
-          }
+          "type": "string"
         },
-        "iconUrl": {
-          "type": "string",
-          "description": "URL to the icon representing the product or service.",
-          "format": "uri"
+        "iconName": {
+          "type": "string"
         },
         "isActive": {
-          "type": "boolean",
-          "description": "Indicates if the product is currently active and available for purchase."
+          "type": "boolean"
         },
         "createdAt": {
           "type": "string",
-          "description": "Timestamp when the product was created.",
-          "format": "date-time"
-        },
-        "updatedAt": {
-          "type": "string",
-          "description": "Timestamp when the product information was last updated.",
           "format": "date-time"
         }
       },
@@ -353,99 +229,14 @@
         "description",
         "price",
         "currency",
-        "iconUrl",
         "isActive",
-        "createdAt",
-        "updatedAt"
-      ]
-    },
-    "Offer": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Offer",
-      "type": "object",
-      "description": "Represents promotional offers or discounts applicable to products or services within the QTBM Wallet app.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the Offer entity."
-        },
-        "name": {
-          "type": "string",
-          "description": "The name of the offer."
-        },
-        "description": {
-          "type": "string",
-          "description": "A detailed description of the offer, including terms and conditions."
-        },
-        "discountPercentage": {
-          "type": "array",
-          "description": "The percentage discount applied by this offer (0-100). Mutually exclusive with fixedDiscountAmount.",
-          "items": {
-            "type": "number"
-          }
-        },
-        "fixedDiscountAmount": {
-          "type": "array",
-          "description": "A fixed amount discounted by this offer. Mutually exclusive with discountPercentage.",
-          "items": {
-            "type": "number"
-          }
-        },
-        "currency": {
-          "type": "array",
-          "description": "The currency of the fixed discount amount, if applicable.",
-          "items": {
-            "type": "string"
-          }
-        },
-        "applicableProductIds": {
-          "type": "array",
-          "description": "References to Products this offer applies to. (Relationship: Offer N:N Product)",
-          "items": {
-            "type": "string"
-          }
-        },
-        "startDate": {
-          "type": "string",
-          "description": "The date and time when the offer becomes active.",
-          "format": "date-time"
-        },
-        "endDate": {
-          "type": "string",
-          "description": "The date and time when the offer expires.",
-          "format": "date-time"
-        },
-        "isActive": {
-          "type": "boolean",
-          "description": "Indicates if the offer is currently active."
-        },
-        "createdAt": {
-          "type": "string",
-          "description": "Timestamp when the offer was created.",
-          "format": "date-time"
-        },
-        "updatedAt": {
-          "type": "string",
-          "description": "Timestamp when the offer information was last updated.",
-          "format": "date-time"
-        }
-      },
-      "required": [
-        "id",
-        "name",
-        "description",
-        "startDate",
-        "endDate",
-        "isActive",
-        "createdAt",
-        "updatedAt"
+        "createdAt"
       ]
     }
   },
   "auth": {
     "providers": [
-      "password",
-      "anonymous"
+      "password"
     ]
   },
   "firestore": {
@@ -457,29 +248,17 @@
           "schema": {
             "$ref": "#/backend/entities/UserProfile"
           },
-          "description": "Stores individual user profile information. The document ID (`{userId}`) must match the user's Firebase Authentication UID. The 'id' field within the document should also match the document ID for explicit data consistency. Includes the 'role' field for application-level role display, while administrative access is managed by the separate '/roles_admin' collection.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The Firebase Authentication UID of the user."
-            }
-          ]
+          "description": "User profile data."
         }
       },
       {
-        "path": "/users/{userId}/wallet",
+        "path": "/users/{userId}/wallet/wallet",
         "definition": {
           "entityName": "Wallet",
           "schema": {
             "$ref": "#/backend/entities/Wallet"
           },
-          "description": "Stores the multi-currency balances for a specific user. This is a subcollection of the user's profile, with a fixed document ID 'wallet' (e.g., '/users/user123/wallet'). The 'userId' field in the document must match the parent '{userId}' and the 'id' field must match the document ID ('wallet') for authorization independence.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The Firebase Authentication UID of the user."
-            }
-          ]
+          "description": "User multi-currency balances."
         }
       },
       {
@@ -489,17 +268,7 @@
           "schema": {
             "$ref": "#/backend/entities/Transaction"
           },
-          "description": "Records all financial movements for a specific user. This is a subcollection of the user's profile, ensuring direct user ownership. The 'initiatorUserId' field in the document must match the parent '{userId}' for authorization independence. The 'id' field within the document should match the document ID ('{transactionId}').",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The Firebase Authentication UID of the user who initiated the transaction."
-            },
-            {
-              "name": "transactionId",
-              "description": "The unique identifier for the transaction."
-            }
-          ]
+          "description": "User transaction history."
         }
       },
       {
@@ -509,13 +278,7 @@
           "schema": {
             "$ref": "#/backend/entities/DepositRequest"
           },
-          "description": "Manages user requests to deposit funds. The 'userId' field in each document is denormalized to enable authorization independence for the requesting user and facilitate admin queries without hierarchical dependencies. The 'id' field within the document should match the document ID ('{depositRequestId}').",
-          "params": [
-            {
-              "name": "depositRequestId",
-              "description": "The unique identifier for the deposit request."
-            }
-          ]
+          "description": "Pending deposit requests."
         }
       },
       {
@@ -525,29 +288,7 @@
           "schema": {
             "$ref": "#/backend/entities/Product"
           },
-          "description": "Contains information about digital products and services. Documents in this collection are globally readable by authenticated users and fully manageable by administrators. The 'id' field within the document should match the document ID ('{productId}').",
-          "params": [
-            {
-              "name": "productId",
-              "description": "The unique identifier for the product."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/offers/{offerId}",
-        "definition": {
-          "entityName": "Offer",
-          "schema": {
-            "$ref": "#/backend/entities/Offer"
-          },
-          "description": "Stores promotional offers and discounts. Documents are globally readable by authenticated users and fully manageable by administrators. The 'id' field within the document should match the document ID ('{offerId}').",
-          "params": [
-            {
-              "name": "offerId",
-              "description": "The unique identifier for the offer."
-            }
-          ]
+          "description": "Available products and services."
         }
       },
       {
@@ -557,16 +298,9 @@
           "schema": {
             "$ref": "#/backend/entities/UserProfile"
           },
-          "description": "A dedicated collection for managing administrative user IDs. The existence of a document at `/roles_admin/{adminId}` indicates that the user with UID '{adminId}' has administrative privileges, enabling atomic DBAC checks in security rules via `exists()`. Each document's ID must be the Firebase Authentication UID of an admin user. The document itself can be empty or contain minimal metadata like `createdAt`.",
-          "params": [
-            {
-              "name": "adminId",
-              "description": "The Firebase Authentication UID of an admin user."
-            }
-          ]
+          "description": "Admin privileges indicator."
         }
       }
-    ],
-    "reasoning": "The Firestore data structure for QTBM Wallet is designed with a strong emphasis on Authorization Independence, Structural Segregation, and consistent Access Modeling to ensure security, scalability, and debuggability. \n\n**Authorization Independence (CRITICAL):**\n\n*   **Path-Based Ownership:** For user-specific data such as `UserProfile`, `Wallet`, and `Transaction` records, a hierarchical path structure (`/users/{userId}/...`) is employed. This design inherently links the data to the authenticated user's UID (`request.auth.uid`), eliminating the need for `get()` calls to a parent document for authorization. For instance, a user's wallet is accessed at `/users/{userId}/wallet`, where `userId` directly corresponds to `request.auth.uid`, making authorization rules simple (`allow read, write: if request.auth.uid == userId;`).\n*   **Denormalization for Global Collections:** For entities like `DepositRequest` which require both user-specific access and global admin oversight, the `userId` is explicitly denormalized as a field within each `DepositRequest` document (`/depositRequests/{depositRequestId}`). This allows a user to access *their* requests via `request.auth.uid == resource.data.userId` without performing a `get()` on a parent `user` document. Admin access is then handled via a separate `roles_admin` collection (see DBAC below), which uses an `exists()` check, maintaining atomicity.\n*   **Global Entities (`Product`, `Offer`):** These collections are designed for broad access (read for all authenticated users, CRUD for admins). Their authorization is independent, relying on the `request.auth.uid != null` for read access and an `exists()` check for admin roles for write access. There are no hierarchical dependencies.\n\n**QAPs (Rules are not Filters):**\n\n*   **Structural Segregation for List Operations:**\n    *   **User-Owned Data:** The `/users/{userId}/transactions/{transactionId}` and `/users/{userId}/wallet` structures ensure that a user querying their own subcollection (`/users/myUid/transactions`) implicitly receives only their data. Security rules will simply enforce that the `{userId}` in the path matches `request.auth.uid` for `list` operations, ensuring no filtering is done *by the rules* for authorization purposes.\n    *   **Public/Admin-Managed Data:** Collections like `/products/{productId}` and `/offers/{offerId}` are top-level. `list` operations for these collections can be performed by any authenticated user (`request.auth.uid != null`). Application-level filtering (e.g., `where('isActive', '==', true)`) is expected and allowed, as it doesn't serve as a security mechanism but as a data presentation filter. For `DepositRequest` (`/depositRequests/{depositRequestId}`), users can `list` their own by querying `where('userId', '==', request.auth.uid)`, which is enforced by rules. Admins can `list` all pending requests via `where('status', '==', 'pending')`, with their admin role verified by rules.\n\n**DBAC (No Custom Claims):**\n\n*   A dedicated top-level collection, `/roles_admin/{adminId}`, is used to manage administrative roles. The mere existence of a document at `/roles_admin/$(request.auth.uid)` grants administrative privileges in security rules via an `exists()` check. This adheres to the principle of \"Existence over Content\" for global roles, avoiding the use of `get()` calls and custom claims.\n\n**Overall:** The design prioritizes flat authorization checks, clear ownership through path structuring and denormalization, and segregation of data based on security posture, leading to a robust, scalable, and easily auditable security model."
+    ]
   }
 }

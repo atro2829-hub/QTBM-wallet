@@ -5,8 +5,8 @@ import { Toaster } from '@/components/ui/toaster';
 import { FirebaseClientProvider } from '@/firebase';
 
 export const metadata: Metadata = {
-  title: 'QTBM Wallet - Secure Digital Finance',
-  description: 'Manage YER, USD, and SAR balances with AI-powered voice commands.',
+  title: 'محفظة QTBM - التميز المالي الرقمي',
+  description: 'إدارة أرصدتك بالريال اليمني، الدولار، والريال السعودي بكل سهولة.',
 };
 
 export default function RootLayout({
@@ -15,7 +15,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="ar" dir="rtl" suppressHydrationWarning>
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />

@@ -1,9 +1,10 @@
+
 "use client";
 
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Wallet, Mail, Lock, User, IdCard, ArrowRight, Loader2 } from 'lucide-react';
+import { Wallet, Mail, Lock, User, IdCard, Phone, MapPin, Building2, ArrowLeft, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
@@ -23,6 +24,9 @@ export default function RegisterPage() {
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
+    phone: '',
+    address: '',
+    city: '',
     nationalId: '',
     password: '',
     confirmPassword: ''
@@ -31,7 +35,7 @@ export default function RegisterPage() {
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     if (formData.password !== formData.confirmPassword) {
-      toast({ title: "Passwords Mismatch", description: "Please ensure passwords match.", variant: "destructive" });
+      toast({ title: "خطأ في كلمة المرور", description: "تأكد من تطابق كلمات المرور.", variant: "destructive" });
       return;
     }
 
@@ -40,31 +44,30 @@ export default function RegisterPage() {
       const userCredential = await createUserWithEmailAndPassword(auth, formData.email, formData.password);
       const user = userCredential.user;
 
-      // Update basic Auth profile (Blocking)
       await updateProfile(user, { displayName: formData.fullName });
 
-      // Create UserProfile document (Non-Blocking)
       const userProfileRef = doc(db, 'users', user.uid);
       setDocumentNonBlocking(userProfileRef, {
         id: user.uid,
         email: formData.email,
         fullName: formData.fullName,
+        phoneNumber: formData.phone,
+        address: formData.address,
+        city: formData.city,
         nationalIdNumber: formData.nationalId,
         preferredTheme: 'light',
-        preferredLanguage: 'EN',
+        preferredLanguage: 'AR',
         role: 'admin',
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp()
       }, { merge: true });
 
-      // Grant Full Permissions via roles_admin (Non-Blocking)
       const adminRoleRef = doc(db, 'roles_admin', user.uid);
       setDocumentNonBlocking(adminRoleRef, {
         uid: user.uid,
         grantedAt: serverTimestamp()
       }, { merge: true });
 
-      // Initialize Wallet document (Non-Blocking)
       const walletRef = doc(db, 'users', user.uid, 'wallet', 'wallet');
       setDocumentNonBlocking(walletRef, {
         id: 'wallet',
@@ -76,13 +79,12 @@ export default function RegisterPage() {
         updatedAt: serverTimestamp()
       }, { merge: true });
 
-      toast({ title: "Account Created", description: "Welcome to QTBM Wallet with Full Admin Permissions!" });
+      toast({ title: "تم إنشاء الحساب", description: "مرحباً بك في محفظة QTBM!" });
       router.push('/dashboard');
     } catch (error: any) {
-      // Surfacing Auth errors here. Firestore errors are handled by the global listener via non-blocking hooks.
       toast({ 
-        title: "Registration Failed", 
-        description: error.message || "An error occurred during registration.", 
+        title: "فشل التسجيل", 
+        description: error.message || "حدث خطأ أثناء التسجيل.", 
         variant: "destructive" 
       });
     } finally {
@@ -91,27 +93,29 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-6 bg-background">
-      <div className="w-full max-w-md space-y-8 animate-in fade-in duration-700">
+    <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-background mesh-background overflow-y-auto">
+      <div className="w-full max-w-md space-y-8 animate-in fade-in duration-700 py-10">
         <div className="text-center space-y-2">
-          <div className="inline-flex p-3 bg-primary rounded-2xl text-white mb-2 shadow-lg shadow-primary/20">
-            <Wallet className="h-8 w-8" />
-          </div>
-          <h1 className="text-3xl font-extrabold tracking-tight">Create Account</h1>
-          <p className="text-muted-foreground">Join QTBM for secure global finance</p>
+           <div className="flex justify-center mb-4">
+              <div className="p-4 bg-primary rounded-[2rem] text-white shadow-2xl shadow-primary/30">
+                <Wallet className="h-10 w-10" />
+              </div>
+           </div>
+          <h1 className="text-3xl font-black tracking-tight">إنشاء حساب جديد</h1>
+          <p className="text-muted-foreground font-bold">انضم إلى مجتمع QTBM للمدفوعات الرقمية</p>
         </div>
 
-        <Card className="border-none shadow-xl bg-card">
+        <Card className="border-none shadow-2xl bg-card/80 backdrop-blur-xl rounded-[2.5rem]">
           <CardContent className="pt-8">
             <form onSubmit={handleRegister} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="fullName">Full Name</Label>
+              <div className="space-y-2 text-right">
+                <Label htmlFor="fullName">الاسم القانوني الكامل</Label>
                 <div className="relative">
-                  <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  <User className="absolute right-3 top-3 h-4 w-4 text-muted-foreground" />
                   <Input 
                     id="fullName" 
-                    placeholder="Enter your full name" 
-                    className="pl-10" 
+                    placeholder="أدخل اسمك كما في الهوية" 
+                    className="pr-10 text-right h-12 rounded-2xl" 
                     value={formData.fullName}
                     onChange={(e) => setFormData({...formData, fullName: e.target.value})}
                     required 
@@ -119,14 +123,61 @@ export default function RegisterPage() {
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="nationalId">National ID Number</Label>
+              <div className="space-y-2 text-right">
+                <Label htmlFor="phone">رقم الهاتف</Label>
                 <div className="relative">
-                  <IdCard className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  <Phone className="absolute right-3 top-3 h-4 w-4 text-muted-foreground" />
+                  <Input 
+                    id="phone" 
+                    type="tel"
+                    placeholder="7xxxxxxx" 
+                    className="pr-10 text-right h-12 rounded-2xl" 
+                    value={formData.phone}
+                    onChange={(e) => setFormData({...formData, phone: e.target.value})}
+                    required 
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2 text-right">
+                  <Label htmlFor="city">المدينة</Label>
+                  <div className="relative">
+                    <Building2 className="absolute right-3 top-3 h-4 w-4 text-muted-foreground" />
+                    <Input 
+                      id="city" 
+                      placeholder="عدن، صنعاء..." 
+                      className="pr-10 text-right h-12 rounded-2xl" 
+                      value={formData.city}
+                      onChange={(e) => setFormData({...formData, city: e.target.value})}
+                      required 
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2 text-right">
+                  <Label htmlFor="address">العنوان</Label>
+                  <div className="relative">
+                    <MapPin className="absolute right-3 top-3 h-4 w-4 text-muted-foreground" />
+                    <Input 
+                      id="address" 
+                      placeholder="الشارع، الحي..." 
+                      className="pr-10 text-right h-12 rounded-2xl" 
+                      value={formData.address}
+                      onChange={(e) => setFormData({...formData, address: e.target.value})}
+                      required 
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-2 text-right">
+                <Label htmlFor="nationalId">رقم الهوية الوطنية</Label>
+                <div className="relative">
+                  <IdCard className="absolute right-3 top-3 h-4 w-4 text-muted-foreground" />
                   <Input 
                     id="nationalId" 
-                    placeholder="Enter your National ID" 
-                    className="pl-10" 
+                    placeholder="أدخل رقم الهوية" 
+                    className="pr-10 text-right h-12 rounded-2xl" 
                     value={formData.nationalId}
                     onChange={(e) => setFormData({...formData, nationalId: e.target.value})}
                     required 
@@ -134,15 +185,15 @@ export default function RegisterPage() {
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="email">Email Address</Label>
+              <div className="space-y-2 text-right">
+                <Label htmlFor="email">البريد الإلكتروني</Label>
                 <div className="relative">
-                  <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  <Mail className="absolute right-3 top-3 h-4 w-4 text-muted-foreground" />
                   <Input 
                     id="email" 
                     type="email" 
-                    placeholder="name@example.com" 
-                    className="pl-10" 
+                    placeholder="example@mail.com" 
+                    className="pr-10 text-right h-12 rounded-2xl" 
                     value={formData.email}
                     onChange={(e) => setFormData({...formData, email: e.target.value})}
                     required 
@@ -151,30 +202,30 @@ export default function RegisterPage() {
               </div>
 
               <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="password">Password</Label>
+                <div className="space-y-2 text-right">
+                  <Label htmlFor="password">كلمة المرور</Label>
                   <div className="relative">
-                    <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                    <Lock className="absolute right-3 top-3 h-4 w-4 text-muted-foreground" />
                     <Input 
                       id="password" 
                       type="password" 
                       placeholder="••••••••" 
-                      className="pl-10" 
+                      className="pr-10 text-right h-12 rounded-2xl" 
                       value={formData.password}
                       onChange={(e) => setFormData({...formData, password: e.target.value})}
                       required 
                     />
                   </div>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="confirmPassword">Confirm</Label>
+                <div className="space-y-2 text-right">
+                  <Label htmlFor="confirmPassword">تأكيد</Label>
                   <div className="relative">
-                    <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                    <Lock className="absolute right-3 top-3 h-4 w-4 text-muted-foreground" />
                     <Input 
                       id="confirmPassword" 
                       type="password" 
                       placeholder="••••••••" 
-                      className="pl-10" 
+                      className="pr-10 text-right h-12 rounded-2xl" 
                       value={formData.confirmPassword}
                       onChange={(e) => setFormData({...formData, confirmPassword: e.target.value})}
                       required 
@@ -183,21 +234,16 @@ export default function RegisterPage() {
                 </div>
               </div>
 
-              <Button type="submit" className="w-full h-12 text-md font-bold group" disabled={isLoading}>
-                {isLoading ? <Loader2 className="animate-spin h-5 w-5" /> : (
-                  <>
-                    Register Now
-                    <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
-                  </>
-                )}
+              <Button type="submit" className="w-full h-14 text-lg font-black rounded-2xl group shadow-xl shadow-primary/20 mt-4" disabled={isLoading}>
+                {isLoading ? <Loader2 className="animate-spin h-5 w-5" /> : "تسجيل الحساب"}
               </Button>
             </form>
           </CardContent>
         </Card>
 
-        <p className="text-center text-sm text-muted-foreground">
-          Already have an account?{" "}
-          <Link href="/auth/login" className="text-primary font-bold hover:underline">Sign In</Link>
+        <p className="text-center text-sm font-bold text-muted-foreground">
+          لديك حساب بالفعل؟{" "}
+          <Link href="/auth/login" className="text-primary font-black hover:underline">تسجيل الدخول</Link>
         </p>
       </div>
     </div>
