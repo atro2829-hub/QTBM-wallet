@@ -63,9 +63,9 @@ service cloud.firestore {
       allow update, delete: if isAdmin();
     }
 
-    // Allow all signed-in users to read system configuration (fixed permission error)
+    // Allow public access to system config for login page information
     match /system/{document=**} {
-      allow get, list: if isSignedIn();
+      allow get, list: if true;
       allow write: if isAdmin();
     }
 
