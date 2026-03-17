@@ -1,0 +1,25 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isSignedIn() { return request.auth != null; }
+    function isAdmin() { return isSignedIn() && exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid)); }
+    function isOwner(userId) { return isSignedIn() && request.auth.uid == userId; }
+
+    match /users/{userId} {
+      allow get: if isOwner(userId) || isAdmin();
+      allow list: if isAdmin();
+      allow create: if isOwner(userId);
+      allow update: if isOwner(userId) && (!('fullName' in resource.data) || request.resource.data.fullName == resource.data.fullName);
+    }
+
+    match /users/{userId}/wallet/{walletDoc} {
+      allow get, list: if isOwner(userId) || isAdmin();
+      allow write: if isAdmin() || isOwner(userId);
+    }
+    
+    match /system/{document=**} {
+      allow get: if true;
+      allow write: if isAdmin();
+    }
+  }
+}
