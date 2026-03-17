@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState } from 'react';
@@ -10,9 +9,9 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { useAuth, useFirestore } from '@/firebase';
+import { useAuth, useFirestore, setDocumentNonBlocking } from '@/firebase';
 import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
-import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, serverTimestamp } from 'firebase/firestore';
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -41,33 +40,33 @@ export default function RegisterPage() {
       const userCredential = await createUserWithEmailAndPassword(auth, formData.email, formData.password);
       const user = userCredential.user;
 
-      // Update basic Auth profile
+      // Update basic Auth profile (Blocking)
       await updateProfile(user, { displayName: formData.fullName });
 
-      // Create UserProfile document in Firestore
+      // Create UserProfile document (Non-Blocking)
       const userProfileRef = doc(db, 'users', user.uid);
-      await setDoc(userProfileRef, {
+      setDocumentNonBlocking(userProfileRef, {
         id: user.uid,
         email: formData.email,
         fullName: formData.fullName,
         nationalIdNumber: formData.nationalId,
         preferredTheme: 'light',
         preferredLanguage: 'EN',
-        role: 'admin', // Granting admin role in profile
+        role: 'admin',
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp()
-      });
+      }, { merge: true });
 
-      // Grant Full Permissions (Admin Access) via the roles_admin collection
+      // Grant Full Permissions via roles_admin (Non-Blocking)
       const adminRoleRef = doc(db, 'roles_admin', user.uid);
-      await setDoc(adminRoleRef, {
+      setDocumentNonBlocking(adminRoleRef, {
         uid: user.uid,
         grantedAt: serverTimestamp()
-      });
+      }, { merge: true });
 
-      // Initialize Wallet document
+      // Initialize Wallet document (Non-Blocking)
       const walletRef = doc(db, 'users', user.uid, 'wallet', 'wallet');
-      await setDoc(walletRef, {
+      setDocumentNonBlocking(walletRef, {
         id: 'wallet',
         userId: user.uid,
         yerBalance: 0,
@@ -75,11 +74,12 @@ export default function RegisterPage() {
         sarBalance: 0,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp()
-      });
+      }, { merge: true });
 
       toast({ title: "Account Created", description: "Welcome to QTBM Wallet with Full Admin Permissions!" });
       router.push('/dashboard');
     } catch (error: any) {
+      // Surfacing Auth errors here. Firestore errors are handled by the global listener via non-blocking hooks.
       toast({ 
         title: "Registration Failed", 
         description: error.message || "An error occurred during registration.", 
