@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState } from 'react';
@@ -17,7 +16,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 
 export default function ServicesPage() {
   const router = useRouter();
-  const { user } = user; // This should be useUser()
   const { user: currentUser } = useUser();
   const db = useFirestore();
   const { toast } = useToast();
