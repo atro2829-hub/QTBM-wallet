@@ -1,0 +1,23 @@
+
+{
+  "placeholderImages": [
+    {
+      "id": "logo",
+      "description": "QTBM Wallet Logo",
+      "imageUrl": "https://picsum.photos/seed/qtbm-logo/200/200",
+      "imageHint": "wallet logo"
+    },
+    {
+      "id": "banner",
+      "description": "Financial background banner",
+      "imageUrl": "https://picsum.photos/seed/wallet-banner/1200/600",
+      "imageHint": "abstract finance"
+    },
+    {
+      "id": "user-avatar",
+      "description": "Default user avatar",
+      "imageUrl": "https://picsum.photos/seed/user-45/100/100",
+      "imageHint": "person portrait"
+    }
+  ]
+}
