@@ -1,3 +1,4 @@
+
 "use client";
 
 import React from 'react';
@@ -12,19 +13,21 @@ import {
   CreditCard, 
   ShieldCheck, 
   Users,
-  Coins
+  Coins,
+  Headset,
+  Info
 } from 'lucide-react';
 
 const actions = [
-  { icon: Send, label: 'Send Money', href: '/dashboard/send', color: 'bg-primary/10 text-primary' },
-  { icon: ArrowDownCircle, label: 'Deposit', href: '/dashboard/deposit', color: 'bg-green-500/10 text-green-600' },
-  { icon: Coins, label: 'Crypto', href: '/services', color: 'bg-yellow-500/10 text-yellow-600' },
-  { icon: LayoutGrid, label: 'Services', href: '/services', color: 'bg-blue-500/10 text-blue-600' },
-  { icon: History, label: 'History', href: '/history', color: 'bg-orange-500/10 text-orange-600' },
-  { icon: Users, label: 'Friends', href: '/dashboard/friends', color: 'bg-pink-500/10 text-pink-600' },
-  { icon: CreditCard, label: 'Cards', href: '#', color: 'bg-gray-500/10 text-gray-600' },
-  { icon: ShieldCheck, label: 'Security', href: '/settings', color: 'bg-cyan-500/10 text-cyan-600' },
-  { icon: Settings, label: 'Settings', href: '/settings', color: 'bg-slate-500/10 text-slate-600' },
+  { icon: Send, label: 'إرسال', href: '/dashboard/send', color: 'bg-primary/10 text-primary' },
+  { icon: ArrowDownCircle, label: 'إيداع', href: '/dashboard/deposit', color: 'bg-green-500/10 text-green-600' },
+  { icon: Coins, label: 'كريبتو', href: '/services', color: 'bg-yellow-500/10 text-yellow-600' },
+  { icon: LayoutGrid, label: 'خدمات', href: '/services', color: 'bg-blue-500/10 text-blue-600' },
+  { icon: History, label: 'السجل', href: '/history', color: 'bg-orange-500/10 text-orange-600' },
+  { icon: Users, label: 'الأصدقاء', href: '/dashboard/friends', color: 'bg-pink-500/10 text-pink-600' },
+  { icon: Headset, label: 'الدعم', href: '/support', color: 'bg-indigo-500/10 text-indigo-600' },
+  { icon: ShieldCheck, label: 'الخصوصية', href: '/privacy', color: 'bg-cyan-500/10 text-cyan-600' },
+  { icon: Info, label: 'اتصل بنا', href: '/contact', color: 'bg-slate-500/10 text-slate-600' },
 ];
 
 export function ActionGrid() {
@@ -37,7 +40,7 @@ export function ActionGrid() {
           className="flex flex-col items-center justify-center p-4 bg-card/40 glass-morphism rounded-[2rem] border-transparent hover:border-primary/20 transition-all active:scale-95 group shadow-sm"
         >
           <div className={`p-3 rounded-2xl mb-2 transition-transform group-hover:scale-110 ${action.color}`}>
-            <action.icon className="h-6 w-6" />
+            <action.icon className="h-5 w-5" />
           </div>
           <span className="text-[10px] font-black uppercase tracking-tighter text-center leading-none">{action.label}</span>
         </Link>
