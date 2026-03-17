@@ -9,19 +9,24 @@ import {
   CarouselContent,
   CarouselItem,
 } from '@/components/ui/carousel';
-import { useWalletStore, Currency } from '@/app/lib/store';
+import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
+import { doc } from 'firebase/firestore';
 import { cn } from '@/lib/utils';
 
 export function BalanceCarousel() {
-  const { user } = useWalletStore();
+  const { user } = useUser();
+  const db = useFirestore();
   const [showBalances, setShowBalances] = useState(true);
 
-  if (!user) return null;
+  const walletRef = useMemoFirebase(() => user ? doc(db, 'users', user.uid, 'wallet', 'wallet') : null, [db, user]);
+  const { data: wallet } = useDoc(walletRef);
 
-  const currencies: { code: Currency; label: string; symbol: string; style: string }[] = [
-    { code: 'USD', label: 'US Dollar', symbol: '$', style: 'balance-card-gradient text-white' },
-    { code: 'YER', label: 'Yemeni Rial', symbol: '﷼', style: 'balance-card-dark text-white' },
-    { code: 'SAR', label: 'Saudi Riyal', symbol: 'SR', style: 'balance-card-dark text-white' },
+  if (!user || !wallet) return null;
+
+  const currencies = [
+    { code: 'USD', label: 'US Dollar', symbol: '$', balance: wallet.usdBalance, style: 'balance-card-gradient text-white' },
+    { code: 'YER', label: 'Yemeni Rial', symbol: '﷼', balance: wallet.yerBalance, style: 'balance-card-dark text-white' },
+    { code: 'SAR', label: 'Saudi Riyal', symbol: 'SR', balance: wallet.sarBalance, style: 'balance-card-dark text-white' },
   ];
 
   return (
@@ -55,14 +60,13 @@ export function BalanceCarousel() {
                   <div>
                     <p className="text-3xl font-extrabold tracking-tight">
                       {showBalances 
-                        ? user.balances[currency.code].toLocaleString()
+                        ? (currency.balance || 0).toLocaleString()
                         : '••••••••'
                       }
                     </p>
                     <p className="text-white/60 text-xs mt-1">Available Balance</p>
                   </div>
 
-                  {/* Subtle pattern background */}
                   <div className="absolute top-0 right-0 opacity-10 pointer-events-none">
                     <svg width="150" height="150" viewBox="0 0 100 100">
                       <circle cx="100" cy="0" r="80" fill="white" />

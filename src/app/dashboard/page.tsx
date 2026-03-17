@@ -1,7 +1,7 @@
 
 "use client";
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Bell, LogOut, User, Loader2 } from 'lucide-react';
 import { BalanceCarousel } from '@/components/dashboard/BalanceCarousel';
 import { ActionGrid } from '@/components/dashboard/ActionGrid';
@@ -23,6 +23,12 @@ export default function Dashboard() {
   const userProfileRef = useMemoFirebase(() => user ? doc(db, 'users', user.uid) : null, [db, user]);
   const { data: profile, isLoading: profileLoading } = useDoc(userProfileRef);
 
+  useEffect(() => {
+    if (!isUserLoading && !profileLoading && (!user || !profile)) {
+      router.push('/auth/login');
+    }
+  }, [user, profile, isUserLoading, profileLoading, router]);
+
   const handleLogout = async () => {
     await signOut(auth);
     router.push('/auth/login');
@@ -37,7 +43,6 @@ export default function Dashboard() {
   }
 
   if (!user || !profile) {
-    router.push('/auth/login');
     return null;
   }
 

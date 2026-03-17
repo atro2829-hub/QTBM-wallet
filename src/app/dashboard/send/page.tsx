@@ -3,71 +3,91 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { ArrowLeft, Send, Search, Info } from 'lucide-react';
+import { ArrowLeft, Send, Search, Info, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useWalletStore, Currency } from '@/app/lib/store';
 import { useToast } from '@/hooks/use-toast';
+import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
+import { doc, collection, addDoc, serverTimestamp } from 'firebase/firestore';
 
 export default function SendMoneyPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { user, addTransaction, updateBalance } = useWalletStore();
+  const { user } = useUser();
+  const db = useFirestore();
   const { toast } = useToast();
 
+  const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
     amount: '',
-    currency: 'USD' as Currency,
+    currency: 'USD',
     recipientUid: '',
   });
+
+  const walletRef = useMemoFirebase(() => user ? doc(db, 'users', user.uid, 'wallet', 'wallet') : null, [db, user]);
+  const { data: wallet } = useDoc(walletRef);
 
   useEffect(() => {
     const amount = searchParams.get('amount');
     const currency = searchParams.get('currency');
     const recipientUid = searchParams.get('recipientUid');
 
-    if (amount || currency || recipientUid) {
-      setFormData({
-        amount: amount || '',
-        currency: (currency as Currency) || 'USD',
-        recipientUid: recipientUid || '',
-      });
-    }
+    if (amount) setFormData(prev => ({ ...prev, amount }));
+    if (currency) setFormData(prev => ({ ...prev, currency }));
+    if (recipientUid) setFormData(prev => ({ ...prev, recipientUid }));
   }, [searchParams]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!user || !wallet) return;
+
     const amount = parseFloat(formData.amount);
+    const currencyKey = `${formData.currency.toLowerCase()}Balance` as keyof typeof wallet;
+    const currentBalance = (wallet[currencyKey] as number) || 0;
     
-    if (isNaN(amount) || amount <= 0) return;
-    if (user && user.balances[formData.currency] < amount) {
-      toast({ title: "Insufficient Balance", description: `You don't have enough ${formData.currency} to complete this transfer.`, variant: "destructive" });
+    if (isNaN(amount) || amount <= 0) {
+      toast({ title: "Invalid Amount", variant: "destructive" });
       return;
     }
 
-    addTransaction({
-      id: Math.random().toString(36).substr(2, 9),
-      type: 'send',
-      description: `Transfer to ${formData.recipientUid}`,
-      amount: amount,
-      currency: formData.currency,
-      status: 'Pending',
-      date: new Date().toISOString(),
-      recipientUid: formData.recipientUid,
-    });
+    if (currentBalance < amount) {
+      toast({ 
+        title: "Insufficient Balance", 
+        description: `You don't have enough ${formData.currency} to complete this transfer.`, 
+        variant: "destructive" 
+      });
+      return;
+    }
 
-    updateBalance(formData.currency, -amount);
+    setIsLoading(true);
+    try {
+      // Record in user's transactions as Pending
+      await addDoc(collection(db, 'users', user.uid, 'transactions'), {
+        initiatorUserId: user.uid,
+        type: 'send',
+        amount: amount,
+        currency: formData.currency,
+        description: `Transfer to ${formData.recipientUid}`,
+        status: 'Pending',
+        recipientUserId: [formData.recipientUid],
+        createdAt: serverTimestamp(),
+      });
 
-    toast({ title: "Transfer Initiated", description: "Your transfer is pending administrator approval." });
-    router.push('/dashboard');
+      toast({ title: "Transfer Initiated", description: "Your transfer is pending administrator approval for security." });
+      router.push('/dashboard');
+    } catch (error: any) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
     <div className="min-h-screen bg-background flex flex-col max-w-md mx-auto relative border-x">
-      <header className="p-4 flex items-center gap-4">
+      <header className="p-4 flex items-center gap-4 sticky top-0 bg-background/80 backdrop-blur-md z-10 border-b">
         <Button variant="ghost" size="icon" onClick={() => router.back()} className="rounded-full">
           <ArrowLeft className="h-6 w-6" />
         </Button>
@@ -113,7 +133,7 @@ export default function SendMoneyPage() {
                   <Label htmlFor="currency">Currency</Label>
                   <Select 
                     value={formData.currency} 
-                    onValueChange={(val) => setFormData({...formData, currency: val as Currency})}
+                    onValueChange={(val) => setFormData({...formData, currency: val})}
                   >
                     <SelectTrigger id="currency">
                       <SelectValue placeholder="Select" />
@@ -134,8 +154,8 @@ export default function SendMoneyPage() {
                 </p>
               </div>
 
-              <Button type="submit" className="w-full h-12 text-md font-bold">
-                Send Now
+              <Button type="submit" className="w-full h-12 text-md font-bold" disabled={isLoading}>
+                {isLoading ? <Loader2 className="animate-spin" /> : "Send Now"}
               </Button>
             </form>
           </CardContent>
