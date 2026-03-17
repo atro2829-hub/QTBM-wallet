@@ -1,8 +1,9 @@
 export const firebaseConfig = {
-  "projectId": "studio-7541306493-3b6a1",
-  "appId": "1:43494766683:web:34e381db74fa770216677e",
-  "apiKey": "AIzaSyBeZj8yuZMSCI10UkZKX0eLcHsmqPmuL-c",
-  "authDomain": "studio-7541306493-3b6a1.firebaseapp.com",
-  "measurementId": "",
-  "messagingSenderId": "43494766683"
+  "projectId": "qtbm-wallet",
+  "appId": "1:819780958051:android:de6a52b0108f2f97ac4556",
+  "apiKey": "AIzaSyCKQvIXxbnpQJ7uQqpa9pS1Pzhwy1poMnI",
+  "authDomain": "qtbm-wallet.firebaseapp.com",
+  "databaseURL": "https://qtbm-wallet-default-rtdb.firebaseio.com",
+  "storageBucket": "qtbm-wallet.firebasestorage.app",
+  "messagingSenderId": "819780958051"
 };
