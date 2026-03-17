@@ -53,9 +53,16 @@ export default function RegisterPage() {
         nationalIdNumber: formData.nationalId,
         preferredTheme: 'light',
         preferredLanguage: 'EN',
-        role: 'user',
+        role: 'admin', // Granting admin role in profile
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp()
+      });
+
+      // Grant Full Permissions (Admin Access) via the roles_admin collection
+      const adminRoleRef = doc(db, 'roles_admin', user.uid);
+      await setDoc(adminRoleRef, {
+        uid: user.uid,
+        grantedAt: serverTimestamp()
       });
 
       // Initialize Wallet document
@@ -70,7 +77,7 @@ export default function RegisterPage() {
         updatedAt: serverTimestamp()
       });
 
-      toast({ title: "Account Created", description: "Welcome to QTBM Wallet!" });
+      toast({ title: "Account Created", description: "Welcome to QTBM Wallet with Full Admin Permissions!" });
       router.push('/dashboard');
     } catch (error: any) {
       toast({ 
