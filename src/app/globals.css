@@ -1,3 +1,4 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -77,7 +78,7 @@
 }
 
 .balance-card-gradient {
-  background: linear-gradient(135deg, hsl(var(--primary)) 0%, #a51d1d 100%);
+  background: linear-gradient(135deg, #e52e2e 0%, #a51d1d 100%);
 }
 
 .balance-card-dark {
