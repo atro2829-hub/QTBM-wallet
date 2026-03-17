@@ -1,19 +1,43 @@
-
 "use client";
 
 import React from 'react';
-import { Bell, LogOut, User } from 'lucide-react';
+import { Bell, LogOut, User, Loader2 } from 'lucide-react';
 import { BalanceCarousel } from '@/components/dashboard/BalanceCarousel';
 import { ActionGrid } from '@/components/dashboard/ActionGrid';
 import { BottomNav } from '@/components/layout/BottomNav';
-import { useWalletStore } from '@/app/lib/store';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
+import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
+import { doc, signOut } from 'firebase/auth';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@/firebase';
 
 export default function Dashboard() {
-  const { user } = useWalletStore();
+  const router = useRouter();
+  const auth = useAuth();
+  const db = useFirestore();
+  const { user, isUserLoading } = useUser();
 
-  if (!user) return null;
+  const userProfileRef = useMemoFirebase(() => user ? doc(db, 'users', user.uid) : null, [db, user]);
+  const { data: profile, isLoading: profileLoading } = useDoc(userProfileRef);
+
+  const handleLogout = async () => {
+    await auth.signOut();
+    router.push('/auth/login');
+  };
+
+  if (isUserLoading || profileLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="animate-spin h-8 w-8 text-primary" />
+      </div>
+    );
+  }
+
+  if (!user || !profile) {
+    router.push('/auth/login');
+    return null;
+  }
 
   return (
     <div className="min-h-screen bg-background flex flex-col max-w-md mx-auto relative border-x">
@@ -22,11 +46,11 @@ export default function Dashboard() {
         <div className="flex items-center gap-3">
           <Avatar className="h-10 w-10 border-2 border-primary/20">
             <AvatarImage src={`https://picsum.photos/seed/${user.uid}/100/100`} />
-            <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
+            <AvatarFallback>{profile.fullName?.charAt(0)}</AvatarFallback>
           </Avatar>
           <div>
             <p className="text-xs text-muted-foreground">Welcome back,</p>
-            <h1 className="text-lg font-bold leading-none">{user.name}</h1>
+            <h1 className="text-lg font-bold leading-none truncate max-w-[150px]">{profile.fullName}</h1>
           </div>
         </div>
         
@@ -35,7 +59,7 @@ export default function Dashboard() {
             <Bell className="h-5 w-5" />
             <span className="absolute top-2 right-2 h-2 w-2 bg-primary rounded-full ring-2 ring-background" />
           </Button>
-          <Button size="icon" variant="ghost" className="rounded-full">
+          <Button size="icon" variant="ghost" className="rounded-full" onClick={handleLogout}>
             <LogOut className="h-5 w-5" />
           </Button>
         </div>
@@ -51,9 +75,11 @@ export default function Dashboard() {
               <div className="p-2 bg-primary/10 text-primary rounded-lg">
                 <User className="h-4 w-4" />
               </div>
-              <span className="text-xs font-medium text-muted-foreground tracking-wider">UID: {user.uid}</span>
+              <span className="text-xs font-medium text-muted-foreground tracking-wider truncate max-w-[180px]">UID: {user.uid}</span>
             </div>
-            <Button size="sm" variant="ghost" className="text-[10px] h-7 px-2 font-bold uppercase tracking-tight text-primary">Copy</Button>
+            <Button size="sm" variant="ghost" className="text-[10px] h-7 px-2 font-bold uppercase tracking-tight text-primary" onClick={() => {
+              navigator.clipboard.writeText(user.uid);
+            }}>Copy</Button>
           </div>
         </div>
 
