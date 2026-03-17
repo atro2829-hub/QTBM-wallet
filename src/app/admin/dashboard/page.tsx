@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState } from 'react';
@@ -28,14 +27,13 @@ import { SidebarProvider, Sidebar, SidebarContent, SidebarHeader, SidebarMenu, S
 import { Separator } from '@/components/ui/separator';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
 import { collection, doc, updateDoc, deleteDoc, addDoc, serverTimestamp, query, where, orderBy, setDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { AppLogo } from '@/components/layout/AppLogo';
+import { updateDocumentNonBlocking, setDocumentNonBlocking } from '@/firebase';
 
 export default function AdminDashboard() {
   const db = useFirestore();
@@ -59,32 +57,23 @@ export default function AdminDashboard() {
   const chatsQuery = useMemoFirebase(() => collection(db, 'support_chats'), [db]);
   const { data: chats, isLoading: chatsLoading } = useCollection(chatsQuery);
 
-  const [newProduct, setNewProduct] = useState({ name: '', price: '', currency: 'USD', description: '', iconName: 'ShoppingCart' });
-
-  const handleUpdateConfig = async () => {
-    try {
-      await setDoc(doc(db, 'system', 'config'), {
-        contactPhone: editingConfig.phone || config?.contactPhone || '775371829',
-        contactEmail: editingConfig.email || config?.contactEmail || 'support@qtbm.com',
-        updatedAt: serverTimestamp()
-      }, { merge: true });
-      toast({ title: "Updated", description: "System configuration saved." });
-    } catch (e: any) {
-      toast({ title: "Error", description: e.message, variant: "destructive" });
-    }
+  const handleUpdateConfig = () => {
+    const configPath = doc(db, 'system', 'config');
+    setDocumentNonBlocking(configPath, {
+      contactPhone: editingConfig.phone || config?.contactPhone || '775371829',
+      contactEmail: editingConfig.email || config?.contactEmail || 'support@qtbm.com',
+      updatedAt: serverTimestamp()
+    }, { merge: true });
+    toast({ title: "Updated", description: "System configuration saved." });
   };
 
-  const handleApprove = async (requestId: string) => {
-    try {
-      const requestRef = doc(db, 'depositRequests', requestId);
-      await updateDoc(requestRef, {
-        status: 'approved',
-        processedAt: serverTimestamp()
-      });
-      toast({ title: "Approved", description: "Request verified." });
-    } catch (error: any) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
-    }
+  const handleApprove = (requestId: string) => {
+    const requestRef = doc(db, 'depositRequests', requestId);
+    updateDocumentNonBlocking(requestRef, {
+      status: 'approved',
+      processedAt: serverTimestamp()
+    });
+    toast({ title: "Approved", description: "Request verified." });
   };
 
   return (
@@ -154,7 +143,9 @@ export default function AdminDashboard() {
                           </tr>
                         </thead>
                         <tbody className="divide-y">
-                          {pendingRequests?.map((req) => (
+                          {requestsLoading ? (
+                             <tr><td colSpan={4} className="p-10 text-center"><Loader2 className="animate-spin mx-auto" /></td></tr>
+                          ) : pendingRequests?.map((req) => (
                             <tr key={req.id} className="hover:bg-accent/30 transition-colors text-xs">
                               <td className="px-8 py-6 font-bold">{req.userId}</td>
                               <td className="px-8 py-6 font-mono">{req.externalTransactionDetails}</td>
