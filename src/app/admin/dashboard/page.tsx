@@ -12,7 +12,10 @@ import {
   Tag,
   Loader2,
   DollarSign,
-  Percent
+  Percent,
+  TrendingUp,
+  Settings,
+  Users
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -32,22 +35,18 @@ export default function AdminDashboard() {
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState('approvals');
   
-  // Products collection
   const productsQuery = useMemoFirebase(() => collection(db, 'products'), [db]);
   const { data: products, isLoading: productsLoading } = useCollection(productsQuery);
 
-  // Offers collection
   const offersQuery = useMemoFirebase(() => collection(db, 'offers'), [db]);
   const { data: offers, isLoading: offersLoading } = useCollection(offersQuery);
 
-  // Pending Deposit Requests
   const pendingRequestsQuery = useMemoFirebase(() => 
     query(collection(db, 'depositRequests'), where('status', '==', 'pending')), 
   [db]);
   const { data: pendingRequests, isLoading: requestsLoading } = useCollection(pendingRequestsQuery);
 
-  // Form states
-  const [newProduct, setNewProduct] = useState({ name: '', price: '', currency: 'USD', description: '' });
+  const [newProduct, setNewProduct] = useState({ name: '', price: '', currency: 'USD', description: '', iconName: 'ShoppingCart' });
   const [newOffer, setNewOffer] = useState({ name: '', description: '', discountPercentage: '', fixedDiscountAmount: '', currency: 'USD' });
 
   const handleApprove = async (requestId: string) => {
@@ -57,7 +56,7 @@ export default function AdminDashboard() {
         status: 'approved',
         processedAt: serverTimestamp()
       });
-      toast({ title: "Approved", description: "Request marked as approved." });
+      toast({ title: "Approved", description: "Request verified and approved." });
     } catch (error: any) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     }
@@ -80,17 +79,15 @@ export default function AdminDashboard() {
     if (!newProduct.name || !newProduct.price) return;
     try {
       await addDoc(collection(db, 'products'), {
-        name: newProduct.name,
+        ...newProduct,
         price: parseFloat(newProduct.price),
-        currency: newProduct.currency,
-        description: newProduct.description,
         isActive: true,
         iconUrl: 'https://picsum.photos/seed/product/100/100',
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp()
       });
-      setNewProduct({ name: '', price: '', currency: 'USD', description: '' });
-      toast({ title: "Success", description: "Product added to catalog." });
+      setNewProduct({ name: '', price: '', currency: 'USD', description: '', iconName: 'ShoppingCart' });
+      toast({ title: "Success", description: "Product added to live catalog." });
     } catch (error: any) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     }
@@ -107,12 +104,12 @@ export default function AdminDashboard() {
         currency: [newOffer.currency],
         isActive: true,
         startDate: serverTimestamp(),
-        endDate: serverTimestamp(), // Admin should set proper dates in a full UI
+        endDate: serverTimestamp(),
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp()
       });
       setNewOffer({ name: '', description: '', discountPercentage: '', fixedDiscountAmount: '', currency: 'USD' });
-      toast({ title: "Success", description: "Promotional offer created." });
+      toast({ title: "Success", description: "Promotional offer launched." });
     } catch (error: any) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     }
@@ -121,80 +118,114 @@ export default function AdminDashboard() {
   return (
     <SidebarProvider>
       <div className="flex min-h-screen bg-background w-full">
-        <Sidebar variant="sidebar" className="border-r">
-          <SidebarHeader className="p-6">
-            <h1 className="text-xl font-bold text-primary flex items-center gap-2">
-              <LayoutDashboard className="h-6 w-6" />
-              QTBM Admin
+        <Sidebar variant="sidebar" className="border-r shadow-xl">
+          <SidebarHeader className="p-8">
+            <h1 className="text-2xl font-black text-primary flex items-center gap-3 tracking-tighter">
+              <div className="p-2 bg-primary rounded-xl text-white">
+                <TrendingUp className="h-6 w-6" />
+              </div>
+              QTBM Core
             </h1>
           </SidebarHeader>
-          <SidebarContent>
-            <SidebarMenu className="px-4">
+          <SidebarContent className="p-4">
+            <SidebarMenu className="space-y-2">
               <SidebarMenuItem>
-                <SidebarMenuButton isActive={activeTab === 'approvals'} onClick={() => setActiveTab('approvals')}>
-                  <ArrowDownLeft className="h-4 w-4" />
+                <SidebarMenuButton isActive={activeTab === 'approvals'} onClick={() => setActiveTab('approvals')} className="h-12 rounded-xl font-bold">
+                  <ArrowDownLeft className="h-5 w-5" />
                   <span>Approvals</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
-                <SidebarMenuButton isActive={activeTab === 'products'} onClick={() => setActiveTab('products')}>
-                  <Package className="h-4 w-4" />
-                  <span>Products & Prices</span>
+                <SidebarMenuButton isActive={activeTab === 'products'} onClick={() => setActiveTab('products')} className="h-12 rounded-xl font-bold">
+                  <Package className="h-5 w-5" />
+                  <span>Products & Crypto</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
-                <SidebarMenuButton isActive={activeTab === 'offers'} onClick={() => setActiveTab('offers')}>
-                  <Tag className="h-4 w-4" />
-                  <span>Offers & Discounts</span>
+                <SidebarMenuButton isActive={activeTab === 'offers'} onClick={() => setActiveTab('offers')} className="h-12 rounded-xl font-bold">
+                  <Tag className="h-5 w-5" />
+                  <span>Offers</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <Separator className="my-4 opacity-50" />
+              <SidebarMenuItem>
+                <SidebarMenuButton className="h-12 rounded-xl font-bold opacity-60">
+                  <Users className="h-5 w-5" />
+                  <span>User Roles</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton className="h-12 rounded-xl font-bold opacity-60">
+                  <Settings className="h-5 w-5" />
+                  <span>System Config</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
             </SidebarMenu>
           </SidebarContent>
         </Sidebar>
 
-        <SidebarInset className="flex-1 overflow-auto">
-          <header className="h-16 border-b px-8 flex items-center justify-between sticky top-0 bg-background/80 backdrop-blur-md z-10">
+        <SidebarInset className="flex-1 bg-muted/30">
+          <header className="h-20 border-b px-8 flex items-center justify-between sticky top-0 bg-background/80 backdrop-blur-xl z-10 shadow-sm">
             <div className="flex items-center gap-4">
               <SidebarTrigger />
-              <Separator orientation="vertical" className="h-4" />
-              <h2 className="text-lg font-bold">Management Panel</h2>
+              <Separator orientation="vertical" className="h-6" />
+              <div className="flex flex-col">
+                <h2 className="text-lg font-black tracking-tight uppercase">Management Panel</h2>
+                <span className="text-[10px] font-bold text-muted-foreground tracking-[0.2em]">Real-time Financial Control</span>
+              </div>
+            </div>
+            <div className="flex gap-2">
+               <Badge variant="outline" className="h-8 font-black uppercase text-xs px-4">Live System</Badge>
             </div>
           </header>
 
-          <main className="p-8 space-y-8">
+          <main className="p-8 space-y-8 max-w-6xl mx-auto">
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
               <TabsContent value="approvals" className="space-y-6">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Approvals Needed</CardTitle>
-                    <CardDescription>User deposit requests awaiting verification.</CardDescription>
+                <Card className="rounded-[2rem] border-none shadow-2xl overflow-hidden">
+                  <CardHeader className="bg-primary/5 border-b border-primary/10">
+                    <CardTitle className="text-2xl font-black">Pending Verifications</CardTitle>
+                    <CardDescription className="font-bold text-muted-foreground/70">Deposit requests from global users awaiting approval.</CardDescription>
                   </CardHeader>
                   <CardContent className="p-0">
                     {requestsLoading ? (
-                      <div className="p-8 flex justify-center"><Loader2 className="animate-spin" /></div>
+                      <div className="p-20 flex flex-col items-center gap-4">
+                         <Loader2 className="animate-spin h-10 w-10 text-primary" />
+                         <span className="text-xs font-black uppercase tracking-widest text-muted-foreground">Fetching Requests...</span>
+                      </div>
                     ) : (
                       <div className="overflow-x-auto">
                         <table className="w-full text-sm">
-                          <thead className="bg-muted text-muted-foreground">
-                            <tr>
-                              <th className="px-6 py-4 text-left">User UID</th>
-                              <th className="px-6 py-4 text-left">Details</th>
-                              <th className="px-6 py-4 text-left">Amount</th>
-                              <th className="px-6 py-4 text-right">Actions</th>
+                          <thead>
+                            <tr className="bg-muted text-muted-foreground font-black uppercase tracking-widest text-[10px]">
+                              <th className="px-8 py-5 text-left">Requester</th>
+                              <th className="px-8 py-5 text-left">Tx Details</th>
+                              <th className="px-8 py-5 text-left">Asset Amount</th>
+                              <th className="px-8 py-5 text-right">Actions</th>
                             </tr>
                           </thead>
-                          <tbody className="divide-y">
+                          <tbody className="divide-y divide-border/50">
                             {pendingRequests?.map((req) => (
-                              <tr key={req.id} className="hover:bg-accent/50">
-                                <td className="px-6 py-4 font-mono text-xs">{req.userId}</td>
-                                <td className="px-6 py-4 font-medium">{req.externalTransactionDetails}</td>
-                                <td className="px-6 py-4 font-bold">{req.amount} {req.currency}</td>
-                                <td className="px-6 py-4 text-right">
-                                  <div className="flex justify-end gap-2">
-                                    <Button variant="ghost" size="icon" className="text-green-600" onClick={() => handleApprove(req.id)}>
+                              <tr key={req.id} className="hover:bg-accent/30 transition-colors">
+                                <td className="px-8 py-6">
+                                  <div className="flex flex-col">
+                                    <span className="font-bold text-xs truncate max-w-[120px]">{req.userId}</span>
+                                    <span className="text-[10px] text-muted-foreground font-mono">ID: {req.id.slice(0, 8)}</span>
+                                  </div>
+                                </td>
+                                <td className="px-8 py-6 font-black text-xs uppercase tracking-tight">{req.externalTransactionDetails}</td>
+                                <td className="px-8 py-6">
+                                  <div className="flex items-center gap-2">
+                                     <span className="text-lg font-black tracking-tight">{req.amount}</span>
+                                     <Badge className="font-black text-[10px] h-5">{req.currency}</Badge>
+                                  </div>
+                                </td>
+                                <td className="px-8 py-6 text-right">
+                                  <div className="flex justify-end gap-3">
+                                    <Button size="icon" className="h-10 w-10 rounded-xl bg-green-500 hover:bg-green-600 shadow-lg shadow-green-500/20" onClick={() => handleApprove(req.id)}>
                                       <CheckCircle2 className="h-5 w-5" />
                                     </Button>
-                                    <Button variant="ghost" size="icon" className="text-red-600" onClick={() => handleReject(req.id)}>
+                                    <Button size="icon" variant="destructive" className="h-10 w-10 rounded-xl shadow-lg shadow-destructive/20" onClick={() => handleReject(req.id)}>
                                       <XCircle className="h-5 w-5" />
                                     </Button>
                                   </div>
@@ -202,7 +233,7 @@ export default function AdminDashboard() {
                               </tr>
                             ))}
                             {pendingRequests?.length === 0 && (
-                              <tr><td colSpan={4} className="p-8 text-center text-muted-foreground">No pending requests</td></tr>
+                              <tr><td colSpan={4} className="p-20 text-center text-muted-foreground font-bold italic">No pending requests found in the ledger.</td></tr>
                             )}
                           </tbody>
                         </table>
@@ -212,56 +243,70 @@ export default function AdminDashboard() {
                 </Card>
               </TabsContent>
 
-              <TabsContent value="products" className="space-y-6">
+              <TabsContent value="products" className="space-y-8">
                 <div className="flex justify-between items-center">
-                  <h3 className="text-xl font-bold">Product Catalog</h3>
+                  <div className="flex flex-col">
+                    <h3 className="text-3xl font-black tracking-tighter">Product Catalog</h3>
+                    <p className="text-sm font-bold text-muted-foreground">Manage entertainment products and crypto assets.</p>
+                  </div>
                   <Dialog>
                     <DialogTrigger asChild>
-                      <Button className="gap-2"><Plus className="h-4 w-4" /> Add Product</Button>
+                      <Button className="h-12 px-6 rounded-2xl font-black gap-2 shadow-xl shadow-primary/20"><Plus className="h-5 w-5" /> Create Product</Button>
                     </DialogTrigger>
-                    <DialogContent>
-                      <DialogHeader><DialogTitle>Add New Service/Product</DialogTitle></DialogHeader>
-                      <div className="space-y-4 py-4">
+                    <DialogContent className="rounded-[2.5rem] p-8">
+                      <DialogHeader><DialogTitle className="text-2xl font-black">New Product Definition</DialogTitle></DialogHeader>
+                      <div className="space-y-5 py-6">
                         <div className="space-y-2">
-                          <Label>Product Name</Label>
-                          <Input value={newProduct.name} onChange={(e) => setNewProduct({...newProduct, name: e.target.value})} placeholder="e.g. Netflix Premium" />
+                          <Label className="font-bold text-xs uppercase tracking-widest text-muted-foreground">Display Name</Label>
+                          <Input value={newProduct.name} onChange={(e) => setNewProduct({...newProduct, name: e.target.value})} placeholder="e.g. Netflix Premium (1 Month)" className="h-12 rounded-xl" />
                         </div>
                         <div className="space-y-2">
-                          <Label>Description</Label>
-                          <Input value={newProduct.description} onChange={(e) => setNewProduct({...newProduct, description: e.target.value})} placeholder="Service details" />
+                          <Label className="font-bold text-xs uppercase tracking-widest text-muted-foreground">Description</Label>
+                          <Input value={newProduct.description} onChange={(e) => setNewProduct({...newProduct, description: e.target.value})} placeholder="Digital service details" className="h-12 rounded-xl" />
                         </div>
                         <div className="grid grid-cols-2 gap-4">
                           <div className="space-y-2">
-                            <Label>Price</Label>
-                            <Input type="number" value={newProduct.price} onChange={(e) => setNewProduct({...newProduct, price: e.target.value})} placeholder="0.00" />
+                            <Label className="font-bold text-xs uppercase tracking-widest text-muted-foreground">Price</Label>
+                            <Input type="number" value={newProduct.price} onChange={(e) => setNewProduct({...newProduct, price: e.target.value})} placeholder="0.00" className="h-12 rounded-xl" />
                           </div>
                           <div className="space-y-2">
-                            <Label>Currency</Label>
-                            <Input value={newProduct.currency} onChange={(e) => setNewProduct({...newProduct, currency: e.target.value})} placeholder="USD, YER, SAR" />
+                            <Label className="font-bold text-xs uppercase tracking-widest text-muted-foreground">Currency</Label>
+                            <Input value={newProduct.currency} onChange={(e) => setNewProduct({...newProduct, currency: e.target.value})} placeholder="USD, YER, SAR" className="h-12 rounded-xl" />
                           </div>
+                        </div>
+                        <div className="space-y-2">
+                           <Label className="font-bold text-xs uppercase tracking-widest text-muted-foreground">Icon Identifier</Label>
+                           <Input value={newProduct.iconName} onChange={(e) => setNewProduct({...newProduct, iconName: e.target.value})} placeholder="Tv, Gamepad2, Music, Coins" className="h-12 rounded-xl" />
                         </div>
                       </div>
                       <DialogFooter>
-                        <Button onClick={handleAddProduct}>Create Product</Button>
+                        <Button className="w-full h-12 rounded-xl font-black" onClick={handleAddProduct}>Publish to App</Button>
                       </DialogFooter>
                     </DialogContent>
                   </Dialog>
                 </div>
 
                 {productsLoading ? (
-                  <div className="p-8 flex justify-center"><Loader2 className="animate-spin" /></div>
+                   <div className="p-20 flex justify-center"><Loader2 className="animate-spin h-10 w-10 text-primary" /></div>
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {products?.map((p) => (
-                      <Card key={p.id}>
-                        <CardContent className="p-6 flex justify-between items-center">
-                          <div>
-                            <h4 className="font-bold">{p.name}</h4>
-                            <p className="text-xs text-muted-foreground mb-2">{p.description}</p>
-                            <p className="text-primary font-bold">{p.price} {p.currency}</p>
+                      <Card key={p.id} className="rounded-[2rem] border-none shadow-lg hover:shadow-2xl transition-all group overflow-hidden bg-card">
+                        <CardContent className="p-8 flex justify-between items-center relative">
+                          <div className="absolute -left-4 -bottom-4 h-20 w-20 bg-primary/5 rounded-full blur-2xl group-hover:bg-primary/10 transition-colors" />
+                          <div className="space-y-3 z-10">
+                            <Badge variant="outline" className="text-[9px] font-black uppercase tracking-widest opacity-60">Digital Asset</Badge>
+                            <div>
+                               <h4 className="text-lg font-black tracking-tight">{p.name}</h4>
+                               <p className="text-xs font-bold text-muted-foreground mt-1 line-clamp-1">{p.description}</p>
+                            </div>
+                            <div className="flex items-center gap-2">
+                               <span className="text-2xl font-black text-primary">{p.price}</span>
+                               <span className="text-xs font-bold text-muted-foreground uppercase">{p.currency}</span>
+                            </div>
                           </div>
-                          <Button variant="ghost" size="icon" className="text-red-500" onClick={() => deleteDoc(doc(db, 'products', p.id))}>
-                            <Trash2 className="h-5 w-5" />
+                          <Button variant="ghost" size="icon" className="h-12 w-12 rounded-2xl hover:bg-destructive/10 text-destructive/80 transition-colors z-10" onClick={() => deleteDoc(doc(db, 'products', p.id))}>
+                            <Trash2 className="h-6 w-6" />
                           </Button>
                         </CardContent>
                       </Card>
@@ -270,86 +315,91 @@ export default function AdminDashboard() {
                 )}
               </TabsContent>
 
-              <TabsContent value="offers" className="space-y-6">
-                <div className="flex justify-between items-center">
-                  <h3 className="text-xl font-bold">Promotional Offers</h3>
-                  <Dialog>
-                    <DialogTrigger asChild>
-                      <Button className="gap-2"><Plus className="h-4 w-4" /> Add Offer</Button>
-                    </DialogTrigger>
-                    <DialogContent>
-                      <DialogHeader><DialogTitle>Create New Offer</DialogTitle></DialogHeader>
-                      <div className="space-y-4 py-4">
-                        <div className="space-y-2">
-                          <Label>Offer Name</Label>
-                          <Input value={newOffer.name} onChange={(e) => setNewOffer({...newOffer, name: e.target.value})} placeholder="e.g. Ramadan Special" />
-                        </div>
-                        <div className="space-y-2">
-                          <Label>Description</Label>
-                          <Input value={newOffer.description} onChange={(e) => setNewOffer({...newOffer, description: e.target.value})} placeholder="Details of the promo" />
-                        </div>
-                        <div className="grid grid-cols-2 gap-4">
+              <TabsContent value="offers" className="space-y-8">
+                 <div className="flex justify-between items-center">
+                    <div className="flex flex-col">
+                      <h3 className="text-3xl font-black tracking-tighter">Campaign Management</h3>
+                      <p className="text-sm font-bold text-muted-foreground">Launch rewards and special discounts.</p>
+                    </div>
+                    <Dialog>
+                      <DialogTrigger asChild>
+                        <Button className="h-12 px-6 rounded-2xl font-black gap-2 shadow-xl shadow-primary/20 bg-purple-600 hover:bg-purple-700"><Plus className="h-5 w-5" /> Create Offer</Button>
+                      </DialogTrigger>
+                      <DialogContent className="rounded-[2.5rem] p-8">
+                        <DialogHeader><DialogTitle className="text-2xl font-black">Promotion Strategy</DialogTitle></DialogHeader>
+                        <div className="space-y-5 py-6">
                           <div className="space-y-2">
-                            <Label>Discount %</Label>
-                            <div className="relative">
-                              <Percent className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                              <Input className="pl-10" type="number" value={newOffer.discountPercentage} onChange={(e) => setNewOffer({...newOffer, discountPercentage: e.target.value})} placeholder="10" />
-                            </div>
+                            <Label className="font-bold text-xs uppercase tracking-widest text-muted-foreground">Campaign Name</Label>
+                            <Input value={newOffer.name} onChange={(e) => setNewOffer({...newOffer, name: e.target.value})} placeholder="e.g. Ramadan Special Rewards" className="h-12 rounded-xl" />
                           </div>
                           <div className="space-y-2">
-                            <Label>Fixed Discount</Label>
-                            <div className="relative">
-                              <DollarSign className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                              <Input className="pl-10" type="number" value={newOffer.fixedDiscountAmount} onChange={(e) => setNewOffer({...newOffer, fixedDiscountAmount: e.target.value})} placeholder="5.00" />
-                            </div>
+                            <Label className="font-bold text-xs uppercase tracking-widest text-muted-foreground">Promotion Tagline</Label>
+                            <Input value={newOffer.description} onChange={(e) => setNewOffer({...newOffer, description: e.target.value})} placeholder="Catchy description" className="h-12 rounded-xl" />
                           </div>
-                        </div>
-                      </div>
-                      <DialogFooter>
-                        <Button onClick={handleAddOffer}>Launch Offer</Button>
-                      </DialogFooter>
-                    </DialogContent>
-                  </Dialog>
-                </div>
-
-                {offersLoading ? (
-                  <div className="p-8 flex justify-center"><Loader2 className="animate-spin" /></div>
-                ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {offers?.map((offer) => (
-                      <Card key={offer.id} className="border-primary/20 bg-primary/5">
-                        <CardHeader>
-                          <div className="flex justify-between items-start">
-                            <div className="flex-1">
-                              <div className="flex items-center gap-2">
-                                <CardTitle className="text-lg">{offer.name}</CardTitle>
-                                <Badge variant="secondary">Active</Badge>
+                          <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                              <Label className="font-bold text-xs uppercase tracking-widest text-muted-foreground text-purple-600">Discount %</Label>
+                              <div className="relative">
+                                <Percent className="absolute left-3 top-3.5 h-4 w-4 text-muted-foreground" />
+                                <Input className="pl-10 h-12 rounded-xl" type="number" value={newOffer.discountPercentage} onChange={(e) => setNewOffer({...newOffer, discountPercentage: e.target.value})} placeholder="15" />
                               </div>
-                              <CardDescription className="mt-1">{offer.description}</CardDescription>
                             </div>
-                            <div className="text-right">
-                              {offer.discountPercentage?.length > 0 && (
-                                <div className="bg-primary text-white p-2 rounded-lg font-bold">
-                                  -{offer.discountPercentage[0]}%
-                                </div>
-                              )}
-                              {offer.fixedDiscountAmount?.length > 0 && (
-                                <div className="bg-primary text-white p-2 rounded-lg font-bold">
-                                  -{offer.fixedDiscountAmount[0]} {offer.currency?.[0] || 'USD'}
-                                </div>
-                              )}
+                            <div className="space-y-2">
+                              <Label className="font-bold text-xs uppercase tracking-widest text-muted-foreground text-green-600">Fixed USD Off</Label>
+                              <div className="relative">
+                                <DollarSign className="absolute left-3 top-3.5 h-4 w-4 text-muted-foreground" />
+                                <Input className="pl-10 h-12 rounded-xl" type="number" value={newOffer.fixedDiscountAmount} onChange={(e) => setNewOffer({...newOffer, fixedDiscountAmount: e.target.value})} placeholder="10.00" />
+                              </div>
                             </div>
                           </div>
-                        </CardHeader>
-                        <CardContent className="flex justify-end border-t pt-4">
-                          <Button variant="ghost" size="sm" className="text-red-500" onClick={() => deleteDoc(doc(db, 'offers', offer.id))}>
-                            Remove Offer
-                          </Button>
-                        </CardContent>
-                      </Card>
-                    ))}
+                        </div>
+                        <DialogFooter>
+                          <Button className="w-full h-12 rounded-xl font-black bg-purple-600" onClick={handleAddOffer}>Activate Campaign</Button>
+                        </DialogFooter>
+                      </DialogContent>
+                    </Dialog>
                   </div>
-                )}
+
+                  {offersLoading ? (
+                    <div className="p-20 flex justify-center"><Loader2 className="animate-spin h-10 w-10 text-primary" /></div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                      {offers?.map((offer) => (
+                        <Card key={offer.id} className="rounded-[2.5rem] border-none shadow-lg overflow-hidden relative group">
+                          <div className="absolute inset-0 bg-gradient-to-br from-purple-600/5 to-primary/5 opacity-50" />
+                          <CardHeader className="relative z-10 pb-2">
+                            <div className="flex justify-between items-start">
+                              <div className="space-y-2">
+                                <div className="flex items-center gap-2">
+                                  <CardTitle className="text-xl font-black tracking-tight">{offer.name}</CardTitle>
+                                  <Badge className="bg-green-500 font-black text-[9px] uppercase tracking-widest px-2 h-5">Live</Badge>
+                                </div>
+                                <CardDescription className="font-bold text-xs">{offer.description}</CardDescription>
+                              </div>
+                              <div className="shrink-0">
+                                {offer.discountPercentage?.length > 0 && (
+                                  <div className="bg-purple-600 text-white p-4 rounded-2xl font-black text-xl shadow-xl shadow-purple-600/30">
+                                    -{offer.discountPercentage[0]}%
+                                  </div>
+                                )}
+                                {offer.fixedDiscountAmount?.length > 0 && (
+                                  <div className="bg-primary text-white p-4 rounded-2xl font-black text-xl shadow-xl shadow-primary/30">
+                                    -{offer.fixedDiscountAmount[0]} {offer.currency?.[0] || 'USD'}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </CardHeader>
+                          <CardContent className="relative z-10 flex justify-between items-center mt-4">
+                             <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">ID: {offer.id.slice(0, 10)}</span>
+                             <Button variant="ghost" size="sm" className="font-black text-destructive/80 hover:bg-destructive/10 rounded-xl" onClick={() => deleteDoc(doc(db, 'offers', offer.id))}>
+                               Remove Campaign
+                             </Button>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  )}
               </TabsContent>
             </Tabs>
           </main>
