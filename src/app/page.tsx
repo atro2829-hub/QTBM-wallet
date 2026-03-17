@@ -3,7 +3,7 @@
 
 import React, { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Wallet } from 'lucide-react';
+import { AppLogo } from '@/components/layout/AppLogo';
 
 export default function SplashPage() {
   const router = useRouter();
@@ -11,32 +11,30 @@ export default function SplashPage() {
   useEffect(() => {
     const timer = setTimeout(() => {
       router.push('/auth/login');
-    }, 2500);
+    }, 3000);
     return () => clearTimeout(timer);
   }, [router]);
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-primary text-white p-6 overflow-hidden">
-      <div className="relative animate-in fade-in zoom-in duration-1000">
-        <div className="p-6 bg-white/10 rounded-3xl backdrop-blur-md mb-6 ring-1 ring-white/20">
-          <Wallet className="h-20 w-20" />
+    <div className="min-h-screen flex flex-col items-center justify-center bg-background mesh-background p-6 overflow-hidden">
+      <div className="relative flex flex-col items-center">
+        <div className="animate-in zoom-in fade-in duration-1000">
+          <AppLogo />
         </div>
-        {/* Subtle decorative elements */}
-        <div className="absolute -top-10 -left-10 w-20 h-20 bg-white/5 rounded-full blur-xl animate-pulse" />
-        <div className="absolute -bottom-10 -right-10 w-24 h-24 bg-white/5 rounded-full blur-xl animate-pulse delay-700" />
+        
+        {/* Subtle decorative background glow */}
+        <div className="absolute -z-10 w-64 h-64 bg-primary/20 rounded-full blur-[100px] animate-pulse" />
       </div>
       
-      <div className="text-center space-y-2 animate-in slide-in-from-bottom duration-1000">
-        <h1 className="text-4xl font-extrabold tracking-tighter">QTBM Wallet</h1>
-        <p className="text-white/70 font-medium">Your Modern Financial Companion</p>
-      </div>
-      
-      <div className="mt-20">
-        <div className="flex gap-1">
-          <div className="w-2 h-2 rounded-full bg-white/40 animate-bounce" style={{ animationDelay: '0ms' }} />
-          <div className="w-2 h-2 rounded-full bg-white/40 animate-bounce" style={{ animationDelay: '150ms' }} />
-          <div className="w-2 h-2 rounded-full bg-white/40 animate-bounce" style={{ animationDelay: '300ms' }} />
+      <div className="mt-24 space-y-6 flex flex-col items-center">
+        <div className="flex gap-1.5">
+          <div className="w-2.5 h-2.5 rounded-full bg-primary/40 animate-bounce" style={{ animationDelay: '0ms' }} />
+          <div className="w-2.5 h-2.5 rounded-full bg-primary/60 animate-bounce" style={{ animationDelay: '200ms' }} />
+          <div className="w-2.5 h-2.5 rounded-full bg-primary animate-bounce" style={{ animationDelay: '400ms' }} />
         </div>
+        <p className="text-[10px] font-black uppercase tracking-[0.5em] text-muted-foreground animate-pulse">
+          Secure Core Initializing
+        </p>
       </div>
     </div>
   );

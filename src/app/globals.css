@@ -55,7 +55,7 @@
     @apply border-border;
   }
   body {
-    @apply bg-background text-foreground font-body antialiased;
+    @apply bg-background text-foreground font-body antialiased overflow-x-hidden;
   }
 }
 
@@ -79,8 +79,23 @@
 
 .balance-card-gradient {
   background: linear-gradient(135deg, #e52e2e 0%, #a51d1d 100%);
+  box-shadow: 0 20px 40px -15px rgba(229, 46, 46, 0.4);
 }
 
 .balance-card-dark {
   @apply bg-slate-900 dark:bg-slate-950;
+  box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.4);
+}
+
+@keyframes logo-float {
+  0%, 100% { transform: translateY(0) rotate(0); }
+  50% { transform: translateY(-10px) rotate(2deg); }
+}
+
+.animate-logo-float {
+  animation: logo-float 4s ease-in-out infinite;
+}
+
+.page-transition {
+  @apply animate-in fade-in slide-in-from-bottom-4 duration-700;
 }

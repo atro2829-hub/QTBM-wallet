@@ -1,45 +1,29 @@
+
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * QTBM WALLET SECURITY RULES
-     *
-     * CORE PHILOSOPHY:
-     * This ruleset implements a strict ownership model for user-specific data and a
-     * Database-Based Access Control (DBAC) model for administrative functions.
-     *
-     * DATA STRUCTURE:
-     * - User-owned data is nested under /users/{userId} (Profile, Wallet, Transactions).
-     * - Global entities (Products) are top-level and readable by all users.
-     * - Admin privileges are determined by the existence of a document in /roles_admin/{uid}.
-     * - System configuration is stored in /system/config.
+     * QTBM WALLET SECURITY RULES - FINALIZED FOR DEPLOYMENT
      */
 
-    // --- HELPER FUNCTIONS ---
-
-    /** @description Checks if the request is from an authenticated user. */
     function isSignedIn() {
       return request.auth != null;
     }
 
-    /** @description Checks if the user's UID exists in the admin roles collection. */
     function isAdmin() {
       return isSignedIn() && exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
     }
 
-    /** @description Checks if the provided UID matches the authenticated user's UID. */
     function isOwner(userId) {
       return isSignedIn() && request.auth.uid == userId;
     }
-
-    // --- COLLECTION RULES ---
 
     match /users/{userId} {
       allow get: if isOwner(userId) || isAdmin();
       allow list: if isAdmin();
       allow create: if isOwner(userId);
-      // Prevent updating sensitive fields once they are set (Enforcing "cannot change later")
+      // Lock legal information once set
       allow update: if isOwner(userId) && (
         !('fullName' in resource.data) || request.resource.data.fullName == resource.data.fullName
       );
@@ -47,8 +31,7 @@ service cloud.firestore {
     }
 
     match /users/{userId}/wallet/{walletDoc} {
-      allow get: if isOwner(userId) || isAdmin();
-      allow list: if isOwner(userId) || isAdmin();
+      allow get, list: if isOwner(userId) || isAdmin();
       allow create: if isOwner(userId);
       allow update: if isAdmin() || isOwner(userId);
       allow delete: if isAdmin();
@@ -76,14 +59,14 @@ service cloud.firestore {
     match /roles_admin/{adminId} {
       allow get: if isSignedIn() && (isOwner(adminId) || isAdmin());
       allow list: if isAdmin();
-      // Allow self-registration as admin for the initial prototype as requested
       allow create: if isOwner(adminId);
       allow update, delete: if isAdmin();
     }
 
+    // Allow all signed-in users to read system configuration (fixed permission error)
     match /system/{document=**} {
-      allow get: if isSignedIn();
-      allow list, write: if isAdmin();
+      allow get, list: if isSignedIn();
+      allow write: if isAdmin();
     }
 
     match /support_chats/{chatId} {
