@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useRef, useEffect, useState } from 'react';
@@ -12,7 +13,8 @@ import {
   Phone, 
   Globe, 
   CheckCircle2,
-  FileText
+  FileText,
+  Loader2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useUser, useFirestore, useCollection, useDoc, useMemoFirebase } from '@/firebase';
@@ -20,7 +22,6 @@ import { collection, query, orderBy, doc } from 'firebase/firestore';
 import { format, isWithinInterval, parseISO, startOfDay, endOfDay } from 'date-fns';
 import { AppLogo } from '@/components/layout/AppLogo';
 import { Badge } from '@/components/ui/badge';
-import { Loader2 } from 'lucide-react';
 
 export default function AccountStatementPage() {
   const router = useRouter();
@@ -41,18 +42,23 @@ export default function AccountStatementPage() {
 
   const { data: allTransactions, isLoading } = useCollection(transactionsQuery);
 
-  // Filter transactions by date range
   const transactions = allTransactions?.filter(tx => {
     if (!tx.createdAt?.seconds || !dateFrom || !dateTo) return true;
     const txDate = new Date(tx.createdAt.seconds * 1000);
-    return isWithinInterval(txDate, {
-      start: startOfDay(parseISO(dateFrom)),
-      end: endOfDay(parseISO(dateTo))
-    });
+    try {
+      return isWithinInterval(txDate, {
+        start: startOfDay(parseISO(dateFrom)),
+        end: endOfDay(parseISO(dateTo))
+      });
+    } catch (e) {
+      return true;
+    }
   });
 
   const handlePrint = () => {
-    window.print();
+    setTimeout(() => {
+      window.print();
+    }, 500);
   };
 
   if (isLoading) return (
@@ -65,9 +71,8 @@ export default function AccountStatementPage() {
   );
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 selection:bg-primary/10" dir="rtl">
-      {/* Tool Bar - Hidden in Print */}
-      <div className="print:hidden p-4 flex items-center justify-between border-b bg-white/80 backdrop-blur-xl sticky top-0 z-50 shadow-sm">
+    <div className="min-h-screen bg-slate-100 text-slate-900" dir="rtl">
+      <div className="print:hidden p-4 flex items-center justify-between border-b bg-white/90 backdrop-blur-xl sticky top-0 z-50 shadow-md">
         <div className="flex gap-4 items-center">
            <Button variant="ghost" size="icon" onClick={() => router.back()} className="rounded-full">
               <ArrowRight className="h-6 w-6" />
@@ -78,17 +83,14 @@ export default function AccountStatementPage() {
            </div>
         </div>
         <div className="flex gap-2">
-           <Button size="sm" onClick={handlePrint} className="rounded-xl gap-2 font-black shadow-lg shadow-primary/20 bg-primary hover:bg-primary/90">
-              <Printer className="h-4 w-4" />
+           <Button onClick={handlePrint} className="rounded-xl gap-2 font-black shadow-lg shadow-primary/20 bg-primary hover:bg-primary/90 px-6 h-11">
+              <Printer className="h-5 w-5" />
               طباعة / حفظ PDF
            </Button>
         </div>
       </div>
 
-      {/* Statement Content */}
       <main ref={printRef} className="max-w-4xl mx-auto p-8 md:p-12 space-y-10 print:p-0 bg-white shadow-2xl my-10 print:my-0 print:shadow-none min-h-[1123px]">
-        
-        {/* Official Header Section */}
         <div className="flex justify-between items-start border-b-4 border-primary pb-10">
           <div className="space-y-6">
             <div className="flex items-center gap-4">
@@ -102,7 +104,6 @@ export default function AccountStatementPage() {
                <span className="text-xs font-black uppercase tracking-[0.2em]">Official Account Statement</span>
             </div>
           </div>
-          
           <div className="text-left space-y-2">
             <h2 className="text-3xl font-black uppercase text-slate-800">كشف حساب</h2>
             <div className="text-[10px] font-mono font-bold text-muted-foreground uppercase space-y-1">
@@ -114,7 +115,6 @@ export default function AccountStatementPage() {
           </div>
         </div>
 
-        {/* User & Wallet Summary Section */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="md:col-span-2 bg-slate-50 p-6 rounded-3xl border border-slate-100 flex gap-6">
             <div className="space-y-4 flex-1">
@@ -123,47 +123,29 @@ export default function AccountStatementPage() {
                   <span className="text-[10px] font-black uppercase">معلومات صاحب الحساب</span>
                </div>
                <div className="grid grid-cols-2 gap-4">
-                 <div>
-                   <p className="text-[10px] font-bold text-muted-foreground uppercase">الاسم الكامل</p>
-                   <p className="text-sm font-black">{profile?.fullName}</p>
-                 </div>
-                 <div>
-                   <p className="text-[10px] font-bold text-muted-foreground uppercase">رقم الهاتف</p>
-                   <p className="text-sm font-black">{profile?.phoneNumber}</p>
-                 </div>
-                 <div className="col-span-2">
-                   <p className="text-[10px] font-bold text-muted-foreground uppercase">العنوان المسجل</p>
-                   <p className="text-sm font-black">{profile?.city} - {profile?.address}</p>
-                 </div>
+                 <div><p className="text-[10px] font-bold text-muted-foreground">الاسم</p><p className="text-sm font-black">{profile?.fullName}</p></div>
+                 <div><p className="text-[10px] font-bold text-muted-foreground">الهاتف</p><p className="text-sm font-black">{profile?.phoneNumber}</p></div>
+                 <div className="col-span-2"><p className="text-[10px] font-bold text-muted-foreground">العنوان</p><p className="text-sm font-black">{profile?.city} - {profile?.address}</p></div>
                </div>
             </div>
           </div>
-
-          <div className="bg-primary/5 p-6 rounded-3xl border border-primary/10 space-y-4">
-             <div className="flex items-center gap-2 text-primary border-b border-primary/20 pb-2">
-                <Wallet className="h-4 w-4" />
-                <span className="text-[10px] font-black uppercase">الحالة الأمنية</span>
-             </div>
-             <div className="flex flex-col items-center justify-center pt-2 gap-2">
-                <CheckCircle2 className="h-10 w-10 text-primary" />
-                <p className="text-[10px] font-black text-primary uppercase tracking-widest">Account Verified</p>
-                <Badge variant="outline" className="text-[8px] font-black border-primary/20 text-primary">QTBM SECURE</Badge>
-             </div>
+          <div className="bg-primary/5 p-6 rounded-3xl border border-primary/10 flex flex-col items-center justify-center text-center">
+             <CheckCircle2 className="h-10 w-10 text-primary" />
+             <p className="text-[10px] font-black text-primary uppercase mt-2">Verified Account</p>
           </div>
         </div>
 
-        {/* Transactions Detailed Table */}
         <div className="space-y-4">
            <h3 className="text-lg font-black flex items-center gap-2 px-2">
               <Clock className="h-5 w-5 text-primary" />
-              سجل الحركات المالية التفصيلي
+              سجل الحركات المالية
            </h3>
            <div className="border border-slate-200 rounded-3xl overflow-hidden shadow-sm">
-             <table className="w-full text-right">
+             <table className="w-full text-right border-collapse">
                 <thead className="bg-slate-900 text-white text-[10px] font-black uppercase">
                    <tr>
                       <th className="px-6 py-5">التاريخ</th>
-                      <th className="px-6 py-5">نوع العملية</th>
+                      <th className="px-6 py-5">النوع</th>
                       <th className="px-6 py-5">الوصف</th>
                       <th className="px-6 py-5">المبلغ</th>
                       <th className="px-6 py-5">العملة</th>
@@ -173,27 +155,17 @@ export default function AccountStatementPage() {
                 <tbody className="divide-y divide-slate-100 text-[11px] font-bold">
                    {transactions?.map((tx) => (
                      <tr key={tx.id} className="hover:bg-slate-50 transition-colors">
-                        <td className="px-6 py-4 whitespace-nowrap text-slate-500">
-                           {tx.createdAt?.seconds ? format(new Date(tx.createdAt.seconds * 1000), 'yyyy-MM-dd') : '-'}
-                        </td>
-                        <td className="px-6 py-4">
-                          <span className="uppercase text-slate-400">{tx.type}</span>
-                        </td>
-                        <td className="px-6 py-4 max-w-[250px]">
-                           <div className="flex flex-col">
-                             <span className="font-black text-slate-800">{tx.description}</span>
-                             {tx.recipientName && <span className="text-[9px] text-primary">إلى: {tx.recipientName}</span>}
-                             {tx.senderName && <span className="text-[9px] text-green-600">من: {tx.senderName}</span>}
-                           </div>
-                        </td>
-                        <td className={`px-6 py-4 text-sm font-black ${tx.type === 'send' || tx.type === 'withdraw' || tx.type === 'purchase' ? 'text-red-600' : 'text-green-600'}`}>
+                        <td className="px-6 py-4 text-slate-500">{tx.createdAt?.seconds ? format(new Date(tx.createdAt.seconds * 1000), 'yyyy-MM-dd') : '-'}</td>
+                        <td className="px-6 py-4"><span className="uppercase text-[9px] border px-2 py-0.5 rounded">{tx.type}</span></td>
+                        <td className="px-6 py-4"><span>{tx.description}</span></td>
+                        <td className={`px-6 py-4 text-sm font-black text-left tabular-nums ${tx.type === 'send' || tx.type === 'withdraw' || tx.type === 'purchase' ? 'text-red-600' : 'text-green-600'}`}>
                            {tx.type === 'send' || tx.type === 'withdraw' || tx.type === 'purchase' ? '-' : '+'}
                            {tx.amount?.toLocaleString()}
                         </td>
-                        <td className="px-6 py-4 font-black text-slate-800">{tx.currency}</td>
+                        <td className="px-6 py-4 font-black text-center">{tx.currency}</td>
                         <td className="px-6 py-4">
                            <div className={`inline-flex px-2 py-0.5 rounded-full text-[8px] font-black uppercase ${
-                             tx.status?.toLowerCase() === 'completed' ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'
+                             tx.status?.toLowerCase() === 'completed' || tx.status?.toLowerCase() === 'approved' ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'
                            }`}>
                               {tx.status}
                            </div>
@@ -202,69 +174,34 @@ export default function AccountStatementPage() {
                    ))}
                 </tbody>
              </table>
-             {(!transactions || transactions.length === 0) && (
-               <div className="p-20 text-center space-y-4 opacity-20">
-                  <FileText className="h-16 w-16 mx-auto" />
-                  <p className="font-black">لا توجد حركات مالية في هذه الفترة</p>
-               </div>
-             )}
            </div>
         </div>
 
-        {/* Signature & Validation Section */}
         <div className="mt-auto pt-20 grid grid-cols-2 gap-12 items-end">
            <div className="space-y-6">
-              <div className="p-6 bg-slate-50 rounded-3xl border border-slate-100 space-y-3">
-                 <p className="text-[10px] font-black text-slate-800 uppercase border-b border-slate-200 pb-2">إقرار قانوني وصحة بيانات</p>
-                 <p className="text-[9px] font-bold leading-relaxed text-slate-500">
-                    هذا الكشف صادر برمجياً من الأنظمة المحاسبية لمحفظة QTBM الرقمية. كافة المعاملات المذكورة خضعت للتدقيق التقني والأمني. يعتبر هذا المستند مرجعاً رسمياً لصاحب الحساب لتوثيق حركاته المالية خلال الفترة المذكورة.
-                 </p>
+              <div className="p-6 bg-slate-50 rounded-3xl border border-slate-100">
+                 <p className="text-[10px] font-black text-slate-800 uppercase border-b pb-2">إقرار قانوني</p>
+                 <p className="text-[9px] font-bold text-slate-500 mt-2">هذا الكشف صادر برمجياً ويعتبر مرجعاً رسمياً لصاحب الحساب.</p>
               </div>
-              <div className="flex items-center gap-4 text-muted-foreground text-[10px] font-bold">
+              <div className="flex gap-4 text-muted-foreground text-[10px] font-bold">
                  <div className="flex items-center gap-1"><Globe className="h-3 w-3" /> www.qtbm.com</div>
-                 <div className="flex items-center gap-1"><Phone className="h-3 w-3" /> support@qtbm.com</div>
               </div>
            </div>
-           
            <div className="flex flex-col items-center gap-4">
-              <div className="relative h-32 w-32 flex items-center justify-center">
-                 <div className="absolute inset-0 border-2 border-primary/20 rounded-full border-dashed animate-spin-slow" />
-                 <div className="h-24 w-24 border-2 border-primary rounded-full flex items-center justify-center opacity-40 rotate-12">
-                    <span className="text-[10px] font-black text-primary text-center leading-tight">QTBM<br/>VERIFIED<br/>SYSTEM</span>
-                 </div>
+              <div className="relative h-32 w-32 border-2 border-primary border-dashed rounded-full flex items-center justify-center">
+                 <span className="text-[10px] font-black text-primary text-center">QTBM<br/>VERIFIED</span>
               </div>
-              <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">التوقيع الرقمي المعتمد</p>
+              <p className="text-[10px] font-black uppercase text-muted-foreground">التوقيع الرقمي</p>
            </div>
         </div>
       </main>
 
       <style jsx global>{`
         @media print {
-          @page {
-            size: A4;
-            margin: 0;
-          }
-          body {
-            background-color: white !important;
-            -webkit-print-color-adjust: exact;
-          }
-          .print-hide {
-            display: none !important;
-          }
-          main {
-            margin: 0 !important;
-            padding: 20mm !important;
-            box-shadow: none !important;
-            width: 100% !important;
-            max-width: none !important;
-          }
-        }
-        @keyframes spin-slow {
-          from { transform: rotate(0deg); }
-          to { transform: rotate(360deg); }
-        }
-        .animate-spin-slow {
-          animation: spin-slow 15s linear infinite;
+          @page { size: A4; margin: 0; }
+          body { background: white !important; -webkit-print-color-adjust: exact; }
+          .print-hide { display: none !important; }
+          main { margin: 0 !important; padding: 20mm !important; box-shadow: none !important; width: 100% !important; }
         }
       `}</style>
     </div>

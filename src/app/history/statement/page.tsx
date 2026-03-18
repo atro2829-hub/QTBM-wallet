@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useRef, useEffect, useState } from 'react';
@@ -12,7 +13,8 @@ import {
   Phone, 
   Globe, 
   CheckCircle2,
-  FileText
+  FileText,
+  Loader2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useUser, useFirestore, useCollection, useDoc, useMemoFirebase } from '@/firebase';
@@ -20,7 +22,6 @@ import { collection, query, orderBy, doc } from 'firebase/firestore';
 import { format, isWithinInterval, parseISO, startOfDay, endOfDay } from 'date-fns';
 import { AppLogo } from '@/components/layout/AppLogo';
 import { Badge } from '@/components/ui/badge';
-import { Loader2 } from 'lucide-react';
 
 export default function AccountStatementPage() {
   const router = useRouter();
@@ -41,18 +42,25 @@ export default function AccountStatementPage() {
 
   const { data: allTransactions, isLoading } = useCollection(transactionsQuery);
 
-  // Filter transactions by date range
+  // تصفية المعاملات بناءً على النطاق الزمني
   const transactions = allTransactions?.filter(tx => {
     if (!tx.createdAt?.seconds || !dateFrom || !dateTo) return true;
     const txDate = new Date(tx.createdAt.seconds * 1000);
-    return isWithinInterval(txDate, {
-      start: startOfDay(parseISO(dateFrom)),
-      end: endOfDay(parseISO(dateTo))
-    });
+    try {
+      return isWithinInterval(txDate, {
+        start: startOfDay(parseISO(dateFrom)),
+        end: endOfDay(parseISO(dateTo))
+      });
+    } catch (e) {
+      return true;
+    }
   });
 
   const handlePrint = () => {
-    window.print();
+    // نستخدم setTimeout لضمان اكتمال رندر الصفحة قبل فتح نافذة الطباعة
+    setTimeout(() => {
+      window.print();
+    }, 500);
   };
 
   if (isLoading) return (
@@ -65,9 +73,9 @@ export default function AccountStatementPage() {
   );
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 selection:bg-primary/10" dir="rtl">
-      {/* Tool Bar - Hidden in Print */}
-      <div className="print:hidden p-4 flex items-center justify-between border-b bg-white/80 backdrop-blur-xl sticky top-0 z-50 shadow-sm">
+    <div className="min-h-screen bg-slate-100 text-slate-900 selection:bg-primary/10" dir="rtl">
+      {/* شريط الأدوات - يختفي عند الطباعة */}
+      <div className="print:hidden p-4 flex items-center justify-between border-b bg-white/90 backdrop-blur-xl sticky top-0 z-50 shadow-md">
         <div className="flex gap-4 items-center">
            <Button variant="ghost" size="icon" onClick={() => router.back()} className="rounded-full">
               <ArrowRight className="h-6 w-6" />
@@ -78,17 +86,17 @@ export default function AccountStatementPage() {
            </div>
         </div>
         <div className="flex gap-2">
-           <Button size="sm" onClick={handlePrint} className="rounded-xl gap-2 font-black shadow-lg shadow-primary/20 bg-primary hover:bg-primary/90">
-              <Printer className="h-4 w-4" />
+           <Button onClick={handlePrint} className="rounded-xl gap-2 font-black shadow-lg shadow-primary/20 bg-primary hover:bg-primary/90 px-6 h-11">
+              <Printer className="h-5 w-5" />
               طباعة / حفظ PDF
            </Button>
         </div>
       </div>
 
-      {/* Statement Content */}
-      <main ref={printRef} className="max-w-4xl mx-auto p-8 md:p-12 space-y-10 print:p-0 bg-white shadow-2xl my-10 print:my-0 print:shadow-none min-h-[1123px]">
+      {/* محتوى الكشف */}
+      <main ref={printRef} className="max-w-4xl mx-auto p-8 md:p-12 space-y-10 print:p-0 bg-white shadow-2xl my-10 print:my-0 print:shadow-none min-h-[1123px] transition-all">
         
-        {/* Official Header Section */}
+        {/* الترويسة الرسمية */}
         <div className="flex justify-between items-start border-b-4 border-primary pb-10">
           <div className="space-y-6">
             <div className="flex items-center gap-4">
@@ -114,7 +122,7 @@ export default function AccountStatementPage() {
           </div>
         </div>
 
-        {/* User & Wallet Summary Section */}
+        {/* ملخص المستخدم والمحفظة */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="md:col-span-2 bg-slate-50 p-6 rounded-3xl border border-slate-100 flex gap-6">
             <div className="space-y-4 flex-1">
@@ -139,34 +147,32 @@ export default function AccountStatementPage() {
             </div>
           </div>
 
-          <div className="bg-primary/5 p-6 rounded-3xl border border-primary/10 space-y-4">
-             <div className="flex items-center gap-2 text-primary border-b border-primary/20 pb-2">
+          <div className="bg-primary/5 p-6 rounded-3xl border border-primary/10 space-y-4 flex flex-col items-center justify-center text-center">
+             <div className="flex items-center gap-2 text-primary border-b border-primary/20 pb-2 w-full justify-center">
                 <Wallet className="h-4 w-4" />
                 <span className="text-[10px] font-black uppercase">الحالة الأمنية</span>
              </div>
-             <div className="flex flex-col items-center justify-center pt-2 gap-2">
-                <CheckCircle2 className="h-10 w-10 text-primary" />
-                <p className="text-[10px] font-black text-primary uppercase tracking-widest">Account Verified</p>
-                <Badge variant="outline" className="text-[8px] font-black border-primary/20 text-primary">QTBM SECURE</Badge>
-             </div>
+             <CheckCircle2 className="h-10 w-10 text-primary mt-2" />
+             <p className="text-[10px] font-black text-primary uppercase tracking-widest mt-1">Account Verified</p>
+             <Badge variant="outline" className="text-[8px] font-black border-primary/20 text-primary uppercase">QTBM Secure Core</Badge>
           </div>
         </div>
 
-        {/* Transactions Detailed Table */}
+        {/* جدول المعاملات التفصيلي */}
         <div className="space-y-4">
            <h3 className="text-lg font-black flex items-center gap-2 px-2">
               <Clock className="h-5 w-5 text-primary" />
               سجل الحركات المالية التفصيلي
            </h3>
            <div className="border border-slate-200 rounded-3xl overflow-hidden shadow-sm">
-             <table className="w-full text-right">
+             <table className="w-full text-right border-collapse">
                 <thead className="bg-slate-900 text-white text-[10px] font-black uppercase">
                    <tr>
-                      <th className="px-6 py-5">التاريخ</th>
-                      <th className="px-6 py-5">نوع العملية</th>
-                      <th className="px-6 py-5">الوصف</th>
-                      <th className="px-6 py-5">المبلغ</th>
-                      <th className="px-6 py-5">العملة</th>
+                      <th className="px-6 py-5 border-l border-white/10">التاريخ</th>
+                      <th className="px-6 py-5 border-l border-white/10">نوع العملية</th>
+                      <th className="px-6 py-5 border-l border-white/10">الوصف</th>
+                      <th className="px-6 py-5 border-l border-white/10">المبلغ</th>
+                      <th className="px-6 py-5 border-l border-white/10">العملة</th>
                       <th className="px-6 py-5">الحالة</th>
                    </tr>
                 </thead>
@@ -177,7 +183,7 @@ export default function AccountStatementPage() {
                            {tx.createdAt?.seconds ? format(new Date(tx.createdAt.seconds * 1000), 'yyyy-MM-dd') : '-'}
                         </td>
                         <td className="px-6 py-4">
-                          <span className="uppercase text-slate-400">{tx.type}</span>
+                          <span className="uppercase text-slate-400 font-black text-[9px] border border-slate-100 px-2 py-0.5 rounded">{tx.type}</span>
                         </td>
                         <td className="px-6 py-4 max-w-[250px]">
                            <div className="flex flex-col">
@@ -186,14 +192,14 @@ export default function AccountStatementPage() {
                              {tx.senderName && <span className="text-[9px] text-green-600">من: {tx.senderName}</span>}
                            </div>
                         </td>
-                        <td className={`px-6 py-4 text-sm font-black ${tx.type === 'send' || tx.type === 'withdraw' || tx.type === 'purchase' ? 'text-red-600' : 'text-green-600'}`}>
+                        <td className={`px-6 py-4 text-sm font-black text-left tabular-nums ${tx.type === 'send' || tx.type === 'withdraw' || tx.type === 'purchase' ? 'text-red-600' : 'text-green-600'}`}>
                            {tx.type === 'send' || tx.type === 'withdraw' || tx.type === 'purchase' ? '-' : '+'}
                            {tx.amount?.toLocaleString()}
                         </td>
-                        <td className="px-6 py-4 font-black text-slate-800">{tx.currency}</td>
+                        <td className="px-6 py-4 font-black text-slate-800 text-center">{tx.currency}</td>
                         <td className="px-6 py-4">
                            <div className={`inline-flex px-2 py-0.5 rounded-full text-[8px] font-black uppercase ${
-                             tx.status?.toLowerCase() === 'completed' ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'
+                             tx.status?.toLowerCase() === 'completed' || tx.status?.toLowerCase() === 'approved' ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'
                            }`}>
                               {tx.status}
                            </div>
@@ -211,7 +217,7 @@ export default function AccountStatementPage() {
            </div>
         </div>
 
-        {/* Signature & Validation Section */}
+        {/* قسم التوقيع والتحقق القانوني */}
         <div className="mt-auto pt-20 grid grid-cols-2 gap-12 items-end">
            <div className="space-y-6">
               <div className="p-6 bg-slate-50 rounded-3xl border border-slate-100 space-y-3">
@@ -245,7 +251,9 @@ export default function AccountStatementPage() {
             margin: 0;
           }
           body {
-            background-color: white !important;
+            background: white !important;
+            margin: 0 !important;
+            padding: 0 !important;
             -webkit-print-color-adjust: exact;
           }
           .print-hide {
@@ -257,6 +265,7 @@ export default function AccountStatementPage() {
             box-shadow: none !important;
             width: 100% !important;
             max-width: none !important;
+            min-height: auto !important;
           }
         }
         @keyframes spin-slow {
