@@ -3,7 +3,7 @@
 
 import React from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, ArrowUpRight, ArrowDownLeft, Clock, ShoppingBag, Loader2 } from 'lucide-react';
+import { ArrowLeft, ArrowUpRight, ArrowDownLeft, Clock, ShoppingBag, Loader2, ChevronLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { BottomNav } from '@/components/layout/BottomNav';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
@@ -27,14 +27,16 @@ export default function HistoryPage() {
       case 'send': return <ArrowUpRight className="h-5 w-5 text-red-500" />;
       case 'receive': return <ArrowDownLeft className="h-5 w-5 text-green-500" />;
       case 'deposit': return <ArrowDownLeft className="h-5 w-5 text-green-500" />;
+      case 'withdraw': return <ArrowUpRight className="h-5 w-5 text-red-500" />;
       case 'purchase': return <ShoppingBag className="h-5 w-5 text-blue-500" />;
       default: return <Clock className="h-5 w-5" />;
     }
   };
 
   const getStatusColor = (status: string) => {
-    switch(status.toLowerCase()) {
-      case 'completed': return 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400';
+    switch(status?.toLowerCase()) {
+      case 'completed':
+      case 'approved': return 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400';
       case 'pending': return 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400';
       case 'failed':
       case 'rejected': return 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400';
@@ -43,47 +45,63 @@ export default function HistoryPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background flex flex-col max-w-md mx-auto relative border-x pb-20">
-      <header className="p-4 flex items-center gap-4 sticky top-0 bg-background/80 backdrop-blur-md z-10 border-b">
+    <div className="min-h-screen mesh-background flex flex-col max-w-md mx-auto relative border-x pb-24 shadow-2xl" dir="rtl">
+      <header className="p-6 pb-2 flex items-center justify-between sticky top-0 bg-background/50 backdrop-blur-md z-10 border-b">
+        <h1 className="text-2xl font-black tracking-tight">سجل المعاملات</h1>
         <Button variant="ghost" size="icon" onClick={() => router.push('/dashboard')} className="rounded-full">
-          <ArrowLeft className="h-6 w-6" />
+          <ArrowLeft className="h-6 w-6 rotate-180" />
         </Button>
-        <h1 className="text-xl font-bold">Transaction History</h1>
       </header>
 
       <main className="flex-1 overflow-y-auto">
         {isLoading ? (
-          <div className="flex justify-center py-20"><Loader2 className="animate-spin text-primary" /></div>
+          <div className="flex flex-col items-center justify-center py-20 gap-4">
+            <Loader2 className="animate-spin text-primary h-10 w-10" />
+            <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">جاري استرجاع سجلاتك...</p>
+          </div>
         ) : !transactions || transactions.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20 text-muted-foreground opacity-50">
-            <Clock className="h-16 w-16 mb-4" />
-            <p>No transactions yet</p>
+          <div className="flex flex-col items-center justify-center py-32 text-muted-foreground opacity-30 text-center px-10 gap-4">
+            <Clock className="h-20 w-20" />
+            <div className="space-y-1">
+              <p className="font-black text-lg">لا توجد معاملات</p>
+              <p className="text-xs font-bold leading-relaxed">لم تقم بإجراء أي عمليات مالية بعد. ابدأ بشحن رصيدك الآن.</p>
+            </div>
           </div>
         ) : (
-          <div className="divide-y">
+          <div className="p-4 space-y-3">
             {transactions.map((tx) => (
-              <div key={tx.id} className="p-4 flex items-center gap-4 active:bg-accent transition-colors">
-                <div className="p-3 bg-accent rounded-full shrink-0">
+              <div 
+                key={tx.id} 
+                className="glass-morphism rounded-3xl p-4 flex items-center gap-4 active:scale-95 transition-all cursor-pointer group hover:bg-white/90 dark:hover:bg-black/50"
+                onClick={() => router.push(`/history/${tx.id}`)}
+              >
+                <div className="p-3 bg-background rounded-2xl shadow-sm shrink-0 group-hover:rotate-12 transition-transform">
                   {getIcon(tx.type)}
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex justify-between items-start mb-1">
-                    <h3 className="font-bold truncate text-sm">{tx.description}</h3>
+                    <h3 className="font-black truncate text-sm tracking-tight">{tx.description}</h3>
                     <span className={cn(
-                      "font-bold text-sm",
-                      tx.type === 'send' || tx.type === 'purchase' ? "text-red-500" : "text-green-500"
+                      "font-black text-sm tabular-nums",
+                      tx.type === 'send' || tx.type === 'purchase' || tx.type === 'withdraw' ? "text-red-500" : "text-green-500"
                     )}>
-                      {tx.type === 'send' || tx.type === 'purchase' ? '-' : '+'}
-                      {tx.amount?.toLocaleString()} {tx.currency}
+                      {tx.type === 'send' || tx.type === 'purchase' || tx.type === 'withdraw' ? '-' : '+'}
+                      {tx.amount?.toLocaleString()}
                     </span>
                   </div>
-                  <div className="flex justify-between items-center text-[10px] text-muted-foreground">
-                    <span>{tx.createdAt?.seconds ? format(new Date(tx.createdAt.seconds * 1000), 'MMM dd, yyyy • HH:mm') : 'Recently'}</span>
-                    <span className={cn("px-2 py-0.5 rounded-full font-bold uppercase tracking-wider", getStatusColor(tx.status))}>
+                  <div className="flex justify-between items-center">
+                    <div className="flex flex-col">
+                      <span className="text-[9px] font-bold text-muted-foreground opacity-70">
+                        {tx.createdAt?.seconds ? format(new Date(tx.createdAt.seconds * 1000), 'dd MMM • HH:mm') : 'جاري المعالجة'}
+                      </span>
+                      <span className="text-[9px] font-black text-primary uppercase">{tx.currency}</span>
+                    </div>
+                    <div className={cn("px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-widest", getStatusColor(tx.status))}>
                       {tx.status}
-                    </span>
+                    </div>
                   </div>
                 </div>
+                <ChevronLeft className="h-4 w-4 text-muted-foreground/30" />
               </div>
             ))}
           </div>
