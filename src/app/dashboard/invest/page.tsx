@@ -14,6 +14,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { updateDocumentNonBlocking } from '@/firebase';
 
 export default function InvestPage() {
   const router = useRouter();
@@ -30,7 +31,7 @@ export default function InvestPage() {
   const configRef = useMemoFirebase(() => doc(db, 'system', 'config'), [db]);
   const { data: config } = useDoc(configRef);
 
-  const [selectedPlan, setSelectedProduct] = useState<any>(null);
+  const [selectedPlan, setSelectedPlan] = useState<any>(null);
   const [investAmount, setInvestAmount] = useState('');
   const [investCurrency, setInvestCurrency] = useState('USD');
   const [isProcessing, setIsProcessing] = useState(false);
@@ -43,7 +44,7 @@ export default function InvestPage() {
     const amount = parseFloat(investAmount);
     
     // Check if amount >= minAmount (converted to selected currency)
-    let minInCurrency = selectedPlan.minAmount;
+    let minInCurrency = selectedPlan.minAmount || 20;
     if (investCurrency === 'YER') minInCurrency *= YER_RATE;
     if (investCurrency === 'SAR') minInCurrency *= SAR_RATE;
 
@@ -66,11 +67,11 @@ export default function InvestPage() {
       const endDate = new Date();
       endDate.setDate(startDate.getDate() + (selectedPlan.durationDays || 30));
 
-      const expectedProfit = amount * (selectedPlan.interestRate / 100);
+      const expectedProfit = amount * ((selectedPlan.interestRate || 8) / 100);
 
       // 1. Deduct balance
       const userWalletRef = doc(db, 'users', user.uid, 'wallet', 'wallet');
-      await updateDocumentNonBlocking(userWalletRef, {
+      updateDocumentNonBlocking(userWalletRef, {
         [balanceKey]: increment(-amount),
         updatedAt: serverTimestamp()
       });
@@ -83,7 +84,7 @@ export default function InvestPage() {
         currency: investCurrency,
         startDate: startDate.toISOString(),
         endDate: endDate.toISOString(),
-        interestRate: selectedPlan.interestRate,
+        interestRate: selectedPlan.interestRate || 8,
         expectedReturn: amount + expectedProfit,
         status: 'active',
         createdAt: serverTimestamp(),
@@ -91,6 +92,7 @@ export default function InvestPage() {
 
       // 3. Record transaction
       await addDoc(collection(db, 'users', user.uid, 'transactions'), {
+        initiatorUserId: user.uid,
         type: 'withdraw',
         amount: amount,
         currency: investCurrency,
@@ -102,18 +104,20 @@ export default function InvestPage() {
       toast({ title: "تم بدء الاستثمار", description: "بالتوفيق في رحلتك المالية!" });
       router.push('/dashboard/invest/active');
     } catch (e: any) {
-      toast({ title: "فشل الاستثمار", variant: "destructive" });
+      toast({ title: "فشل الاستثمار", description: e.message, variant: "destructive" });
     } finally {
       setIsProcessing(false);
-      setSelectedProduct(null);
+      setSelectedPlan(null);
     }
   };
 
   const getMinLabel = (plan: any) => {
-    if (investCurrency === 'USD') return `${plan.minAmount} USD`;
-    if (investCurrency === 'YER') return `${(plan.minAmount * YER_RATE).toLocaleString()} YER`;
-    if (investCurrency === 'SAR') return `${(plan.minAmount * SAR_RATE).toLocaleString()} SAR`;
-    return `${plan.minAmount} USD`;
+    if (!plan) return '0.00';
+    const minAmount = plan.minAmount || 20;
+    if (investCurrency === 'USD') return `${minAmount} USD`;
+    if (investCurrency === 'YER') return `${(minAmount * YER_RATE).toLocaleString()} YER`;
+    if (investCurrency === 'SAR') return `${(minAmount * SAR_RATE).toLocaleString()} SAR`;
+    return `${minAmount} USD`;
   };
 
   return (
@@ -142,7 +146,7 @@ export default function InvestPage() {
               <Card key={plan.id} className="rounded-[2.5rem] border-none shadow-xl glass-morphism overflow-hidden group hover:scale-[1.02] transition-all">
                 <div className="bg-gradient-to-r from-emerald-500 to-teal-600 p-6 text-white relative">
                    <TrendingUp className="absolute right-4 bottom-4 h-20 w-20 opacity-10" />
-                   <Badge className="bg-white/20 hover:bg-white/30 text-white border-none mb-2 font-black uppercase tracking-widest text-[8px]">{plan.interestRate}% عائد</Badge>
+                   <Badge className="bg-white/20 hover:bg-white/30 text-white border-none mb-2 font-black uppercase tracking-widest text-[8px]">{plan.interestRate || 8}% عائد</Badge>
                    <h3 className="text-xl font-black">{plan.name}</h3>
                    <p className="text-xs text-white/70 mt-1">{plan.description}</p>
                 </div>
@@ -150,21 +154,21 @@ export default function InvestPage() {
                    <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-1">
                          <p className="text-[10px] font-black uppercase text-muted-foreground">الحد الأدنى</p>
-                         <p className="text-sm font-black">20 USD وما يقابلها</p>
+                         <p className="text-sm font-black">{plan.minAmount || 20} USD وما يقابلها</p>
                       </div>
                       <div className="space-y-1 text-left">
                          <p className="text-[10px] font-black uppercase text-muted-foreground">المدة</p>
                          <p className="text-sm font-black">{plan.durationDays || 30} يوم</p>
                       </div>
                    </div>
-                   <Button className="w-full h-12 rounded-2xl font-black bg-emerald-600 hover:bg-emerald-700" onClick={() => setSelectedProduct(plan)}>اشتراك الآن</Button>
+                   <Button className="w-full h-12 rounded-2xl font-black bg-emerald-600 hover:bg-emerald-700" onClick={() => setSelectedPlan(plan)}>اشتراك الآن</Button>
                 </CardContent>
               </Card>
             ))}
           </div>
         )}
 
-        <Dialog open={!!selectedPlan} onOpenChange={() => setSelectedProduct(null)}>
+        <Dialog open={!!selectedPlan} onOpenChange={(open) => !open && setSelectedPlan(null)}>
           <DialogContent className="rounded-[2.5rem] max-w-sm border-none shadow-2xl" dir="rtl">
             <DialogHeader>
               <DialogTitle className="text-right font-black">بدء الاستثمار في {selectedPlan?.name}</DialogTitle>
@@ -204,9 +208,4 @@ export default function InvestPage() {
       </main>
     </div>
   );
-}
-
-function updateDocumentNonBlocking(docRef: any, data: any) {
-  const { updateDoc } = require('firebase/firestore');
-  return updateDoc(docRef, data);
 }
