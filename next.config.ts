@@ -1,9 +1,9 @@
-
 import type {NextConfig} from 'next';
 
 const nextConfig: NextConfig = {
   /* تفعيل التصدير الثابت لتحويل المشروع إلى تطبيق أندرويد عبر Capacitor */
   output: 'export',
+  trailingSlash: true, // يضمن توافق الروابط داخل متصفحات الأندرويد
   typescript: {
     ignoreBuildErrors: true,
   },
