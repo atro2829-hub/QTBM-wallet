@@ -13,7 +13,7 @@
     "cap:open-android": "npx cap open android",
     "apk:prepare": "npm run build && npx cap sync",
     "apk:build-debug": "cd android && ./gradlew assembleDebug",
-    "apk:build-release": "cd android && ./gradlew assembleRelease"
+    "apk:full-build": "npm run apk:prepare && npm run apk:build-debug"
   },
   "dependencies": {
     "@capacitor/android": "^7.0.0",
