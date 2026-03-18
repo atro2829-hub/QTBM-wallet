@@ -5,13 +5,9 @@
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack -p 9002",
-    "genkit:dev": "genkit start -- tsx src/ai/dev.ts",
-    "genkit:watch": "genkit start -- tsx --watch src/ai/dev.ts",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "typecheck": "tsc --noEmit",
-    "static-build": "next build",
     "cap:sync": "npx cap sync",
     "cap:add-android": "npx cap add android",
     "cap:open-android": "npx cap open android",
