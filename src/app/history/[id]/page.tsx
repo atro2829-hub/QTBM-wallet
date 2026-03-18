@@ -1,21 +1,17 @@
 
+"use client";
+
+import React from 'react';
+
 /**
- * @fileOverview Static export compatibility for Next.js dynamic routes.
- * This file prevents "Internal Server Error" during 'npm run build'.
+ * توافق التصدير الثابت لـ Next.js 15.
+ * تم تحويل الصفحة إلى Client Component لضمان استقرار عملية البناء.
  */
-
-export const dynamicParams = false;
-
-export function generateStaticParams() {
-  // Provide a fallback ID to satisfy the static export requirements.
-  return [{ id: 'default' }];
-}
-
 export default function StaticHistoryIdPage() {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background" aria-hidden="true">
+    <div className="min-h-screen flex items-center justify-center bg-background">
       <div className="animate-pulse text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground">
-        Redirecting to transaction details...
+        جاري جلب تفاصيل المعاملة...
       </div>
     </div>
   );

@@ -39,13 +39,13 @@ export function AdminDashboardContent() {
   const [isAddingProduct, setIsAddingProduct] = useState(false);
   const [isAddingPlan, setIsAddingPlan] = useState(false);
   
-  const userProfileRef = useMemoFirebase(() => user ? doc(db, 'users', user.uid) : null, [db, user]);
+  const userProfileRef = useMemoFirebase(() => user && db ? doc(db, 'users', user.uid) : null, [db, user]);
   const { data: profile, isLoading: profileLoading } = useDoc(userProfileRef);
 
   const [newProduct, setNewProduct] = useState({ name: '', category: '', price: '', currency: 'USD', iconName: 'Package', imageUrl: '', description: '' });
   const [newPlan, setNewPlan] = useState({ name: '', minAmount: '20', durationDays: '30', interestRate: '8', description: '' });
 
-  const configRef = useMemoFirebase(() => doc(db, 'system', 'config'), [db]);
+  const configRef = useMemoFirebase(() => db ? doc(db, 'system', 'config') : null, [db]);
   const { data: config } = useDoc(configRef);
   
   const [rates, setRates] = useState({ usdToYerRate: '1500', usdToSarRate: '3.75', usdtCommission: '5', phone: '', email: '' });
@@ -68,13 +68,13 @@ export function AdminDashboardContent() {
     }
   }, [profile, isUserLoading, profileLoading, router]);
 
-  const productsQuery = useMemoFirebase(() => collection(db, 'products'), [db]);
+  const productsQuery = useMemoFirebase(() => db ? collection(db, 'products') : null, [db]);
   const { data: products } = useCollection(productsQuery);
 
-  const plansQuery = useMemoFirebase(() => collection(db, 'investment_plans'), [db]);
+  const plansQuery = useMemoFirebase(() => db ? collection(db, 'investment_plans') : null, [db]);
   const { data: plans } = useCollection(plansQuery);
 
-  const pendingDepositsQuery = useMemoFirebase(() => query(collection(db, 'depositRequests'), where('status', '==', 'pending')), [db]);
+  const pendingDepositsQuery = useMemoFirebase(() => db ? query(collection(db, 'depositRequests'), where('status', '==', 'pending')) : null, [db]);
   const { data: pendingDeposits } = useCollection(pendingDepositsQuery);
 
   if (isUserLoading || profileLoading) return <div className="min-h-screen flex items-center justify-center bg-background"><Loader2 className="h-10 w-10 animate-spin text-primary" /></div>;
@@ -93,6 +93,7 @@ export function AdminDashboardContent() {
   };
 
   const seedDefaultData = async () => {
+    if (!db) return;
     try {
       const plansCol = collection(db, 'investment_plans');
       const prodsCol = collection(db, 'products');
@@ -113,7 +114,7 @@ export function AdminDashboardContent() {
   };
 
   const handleAddProduct = () => {
-    if (!newProduct.name || !newProduct.price) return;
+    if (!db || !newProduct.name || !newProduct.price) return;
     addDocumentNonBlocking(collection(db, 'products'), {
       ...newProduct,
       price: parseFloat(newProduct.price),
@@ -125,7 +126,7 @@ export function AdminDashboardContent() {
   };
 
   const handleAddPlan = () => {
-    if (!newPlan.name || !newPlan.minAmount) return;
+    if (!db || !newPlan.name || !newPlan.minAmount) return;
     addDocumentNonBlocking(collection(db, 'investment_plans'), {
       ...newPlan,
       minAmount: parseFloat(newPlan.minAmount),
@@ -211,7 +212,7 @@ export function AdminDashboardContent() {
                     <Card key={prod.id} className="rounded-2xl glass-morphism border-none shadow-sm relative overflow-hidden group">
                        <div className="h-32 bg-muted relative">
                           {prod.imageUrl && <img src={prod.imageUrl} className="w-full h-full object-cover opacity-80" alt={prod.name} />}
-                          <Button variant="destructive" size="icon" className="absolute top-2 right-2 h-8 w-8 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => deleteDocumentNonBlocking(doc(db, 'products', prod.id))}><Trash2 className="h-4 w-4" /></Button>
+                          <Button variant="destructive" size="icon" className="absolute top-2 right-2 h-8 w-8 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => db && deleteDocumentNonBlocking(doc(db, 'products', prod.id))}><Trash2 className="h-4 w-4" /></Button>
                        </div>
                        <CardContent className="p-4">
                           <h4 className="font-black text-sm">{prod.name}</h4>
@@ -261,7 +262,7 @@ export function AdminDashboardContent() {
                              <span>المدة: {plan.durationDays} يوم</span>
                              <span>الحد الأدنى: {plan.minAmount} $</span>
                           </div>
-                          <Button variant="ghost" className="w-full text-destructive hover:bg-destructive/10" onClick={() => deleteDocumentNonBlocking(doc(db, 'investment_plans', plan.id))}>حذف الخطة</Button>
+                          <Button variant="ghost" className="w-full text-destructive hover:bg-destructive/10" onClick={() => db && deleteDocumentNonBlocking(doc(db, 'investment_plans', plan.id))}>حذف الخطة</Button>
                        </CardContent>
                     </Card>
                   ))}

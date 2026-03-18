@@ -1,14 +1,17 @@
 
+"use client";
+
+import React from 'react';
+
 /**
- * @fileOverview Portfolio version static export compatibility.
+ * نسخة Portfolio المتوافقة مع التصدير الثابت لـ Next.js 15.
  */
-
-export const dynamicParams = false;
-
-export function generateStaticParams() {
-  return [{ id: 'default' }];
-}
-
 export default function PortfolioStaticHistoryIdPage() {
-  return <div className="hidden" aria-hidden="true" />;
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-background">
+      <div className="animate-pulse text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground">
+        جاري جلب بيانات المعاملة...
+      </div>
+    </div>
+  );
 }

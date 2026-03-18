@@ -3,14 +3,22 @@
 
 import { firebaseConfig } from '@/firebase/config';
 import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
-import { getAuth } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore'
+import { getAuth, Auth } from 'firebase/auth';
+import { getFirestore, Firestore } from 'firebase/firestore';
 
 /**
  * تهيئة Firebase بشكل آمن لبيئة الأندرويد والتصدير الثابت.
- * تم تعديل المنطق لضمان استخدام firebaseConfig دائماً في حال غياب بيئة Hosting التلقائية.
+ * تم تعديل المنطق لضمان عدم الانهيار أثناء مرحلة البناء (Build-time).
  */
 export function initializeFirebase() {
+  if (typeof window === 'undefined') {
+    return {
+      firebaseApp: null,
+      auth: null,
+      firestore: null
+    };
+  }
+
   if (getApps().length > 0) {
     return getSdks(getApp());
   }
@@ -18,16 +26,9 @@ export function initializeFirebase() {
   let firebaseApp: FirebaseApp;
   
   try {
-    // في بيئة الأندرويد أو التصدير الثابت، نستخدم الإعدادات المباشرة أولاً لضمان الاستقرار
     firebaseApp = initializeApp(firebaseConfig);
   } catch (e) {
-    // محاولة أخيرة في حال وجود تهيئة تلقائية من الاستضافة
-    try {
-      firebaseApp = initializeApp();
-    } catch (innerError) {
-      console.error('Firebase initialization failed critical:', innerError);
-      firebaseApp = getApp(); 
-    }
+    firebaseApp = getApp();
   }
 
   return getSdks(firebaseApp);
