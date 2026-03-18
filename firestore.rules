@@ -51,6 +51,14 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
+    match /withdrawRequests/{requestId} {
+      allow get: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
+      allow list: if isAdmin();
+      allow create: if isSignedIn();
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
     match /products/{productId} {
       allow get, list: if isSignedIn();
       allow create, update, delete: if isAdmin();
