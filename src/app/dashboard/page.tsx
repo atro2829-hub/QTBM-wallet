@@ -14,6 +14,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/firebase';
 import { AppLogo } from '@/components/layout/AppLogo';
 import { useToast } from '@/hooks/use-toast';
+import { cn } from '@/lib/utils';
 
 export default function Dashboard() {
   const router = useRouter();
