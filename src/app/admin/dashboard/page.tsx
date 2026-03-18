@@ -18,7 +18,9 @@ import {
   Search,
   PlusCircle,
   MoreVertical,
-  ArrowRightLeft
+  ArrowRightLeft,
+  Layers,
+  Banknote
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -42,34 +44,34 @@ export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState('approvals');
   const [isAddingProduct, setIsAddingProduct] = useState(false);
   
-  // New Product Form State
   const [newProduct, setNewProduct] = useState({
     name: '',
+    category: '',
     price: '',
     currency: 'USD',
-    iconName: 'ShoppingCart',
+    iconName: 'Package',
     description: ''
   });
 
-  // System Config
   const configRef = useMemoFirebase(() => doc(db, 'system', 'config'), [db]);
   const { data: config } = useDoc(configRef);
   const [editingConfig, setEditingConfig] = useState({ phone: '', email: '' });
 
-  // Data fetching
   const productsQuery = useMemoFirebase(() => collection(db, 'products'), [db]);
   const { data: products, isLoading: productsLoading } = useCollection(productsQuery);
 
-  const pendingRequestsQuery = useMemoFirebase(() => 
+  const pendingDepositsQuery = useMemoFirebase(() => 
     query(collection(db, 'depositRequests'), where('status', '==', 'pending')), 
   [db]);
-  const { data: pendingRequests, isLoading: requestsLoading } = useCollection(pendingRequestsQuery);
+  const { data: pendingDeposits } = useCollection(pendingDepositsQuery);
+
+  const pendingWithdrawsQuery = useMemoFirebase(() => 
+    query(collection(db, 'withdrawRequests'), where('status', '==', 'pending')), 
+  [db]);
+  const { data: pendingWithdraws } = useCollection(pendingWithdrawsQuery);
 
   const usersQuery = useMemoFirebase(() => collection(db, 'users'), [db]);
-  const { data: allUsers, isLoading: usersLoading } = useCollection(usersQuery);
-
-  const chatsQuery = useMemoFirebase(() => collection(db, 'support_chats'), [db]);
-  const { data: chats, isLoading: chatsLoading } = useCollection(chatsQuery);
+  const { data: allUsers } = useCollection(usersQuery);
 
   const handleUpdateConfig = () => {
     const configPath = doc(db, 'system', 'config');
@@ -81,17 +83,20 @@ export default function AdminDashboard() {
     toast({ title: "تم التحديث", description: "تم حفظ إعدادات النظام بنجاح." });
   };
 
-  const handleApprove = (requestId: string) => {
+  const handleApproveDeposit = (requestId: string) => {
     const requestRef = doc(db, 'depositRequests', requestId);
-    updateDocumentNonBlocking(requestRef, {
-      status: 'approved',
-      processedAt: serverTimestamp()
-    });
+    updateDocumentNonBlocking(requestRef, { status: 'approved', processedAt: serverTimestamp() });
     toast({ title: "تمت الموافقة", description: "تم تأكيد طلب الإيداع." });
   };
 
+  const handleApproveWithdraw = (requestId: string) => {
+    const requestRef = doc(db, 'withdrawRequests', requestId);
+    updateDocumentNonBlocking(requestRef, { status: 'approved', processedAt: serverTimestamp() });
+    toast({ title: "تمت الموافقة", description: "تم تأكيد طلب السحب." });
+  };
+
   const handleAddProduct = async () => {
-    if (!newProduct.name || !newProduct.price) return;
+    if (!newProduct.name || !newProduct.price || !newProduct.category) return;
     const productsRef = collection(db, 'products');
     addDocumentNonBlocking(productsRef, {
       ...newProduct,
@@ -99,15 +104,9 @@ export default function AdminDashboard() {
       isActive: true,
       createdAt: serverTimestamp()
     });
-    setNewProduct({ name: '', price: '', currency: 'USD', iconName: 'ShoppingCart', description: '' });
+    setNewProduct({ name: '', category: '', price: '', currency: 'USD', iconName: 'Package', description: '' });
     setIsAddingProduct(false);
-    toast({ title: "تمت الإضافة", description: "تم إضافة المنتج الجديد للكتالوج." });
-  };
-
-  const handleDeleteProduct = (productId: string) => {
-    const productRef = doc(db, 'products', productId);
-    deleteDocumentNonBlocking(productRef);
-    toast({ title: "تم الحذف", description: "تم إزالة المنتج من القائمة." });
+    toast({ title: "تمت الإضافة", description: "تم إضافة المنتج بنجاح." });
   };
 
   return (
@@ -122,31 +121,31 @@ export default function AdminDashboard() {
               <SidebarMenuItem>
                 <SidebarMenuButton isActive={activeTab === 'approvals'} onClick={() => setActiveTab('approvals')} className="h-12 rounded-xl font-black">
                   <ArrowDownLeft className="h-5 w-5 ml-2" />
-                  <span>الموافقات المالية</span>
+                  <span>الإيداعات</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton isActive={activeTab === 'withdraws'} onClick={() => setActiveTab('withdraws')} className="h-12 rounded-xl font-black">
+                  <Banknote className="h-5 w-5 ml-2" />
+                  <span>السحوبات</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
                 <SidebarMenuButton isActive={activeTab === 'users'} onClick={() => setActiveTab('users')} className="h-12 rounded-xl font-black">
                   <Users className="h-5 w-5 ml-2" />
-                  <span>إدارة المستخدمين</span>
+                  <span>المستخدمين</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
                 <SidebarMenuButton isActive={activeTab === 'products'} onClick={() => setActiveTab('products')} className="h-12 rounded-xl font-black">
-                  <Package className="h-5 w-5 ml-2" />
-                  <span>كتالوج الخدمات</span>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton isActive={activeTab === 'support'} onClick={() => setActiveTab('support')} className="h-12 rounded-xl font-black">
-                  <MessageSquare className="h-5 w-5 ml-2" />
-                  <span>الشكاوى والدعم</span>
+                  <Layers className="h-5 w-5 ml-2" />
+                  <span>الفئات والخدمات</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
                 <SidebarMenuButton isActive={activeTab === 'system'} onClick={() => setActiveTab('system')} className="h-12 rounded-xl font-black">
                   <Settings className="h-5 w-5 ml-2" />
-                  <span>إعدادات النظام</span>
+                  <span>النظام</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
             </SidebarMenu>
@@ -157,118 +156,111 @@ export default function AdminDashboard() {
           <header className="h-20 border-b px-8 flex items-center justify-between sticky top-0 bg-background/80 backdrop-blur-xl z-10 shadow-sm">
             <div className="flex items-center gap-4">
               <SidebarTrigger />
-              <Separator orientation="vertical" className="h-6" />
-              <h2 className="text-lg font-black tracking-tight uppercase">لوحة تحكم QTBM</h2>
+              <h2 className="text-lg font-black uppercase tracking-tight">إدارة QTBM</h2>
             </div>
-            <div className="flex items-center gap-2">
-              <Badge variant="outline" className="border-primary/20 text-primary font-black">Live System</Badge>
-            </div>
+            <Badge variant="outline" className="border-primary/20 text-primary font-black">نظام حي</Badge>
           </header>
 
           <main className="p-8 space-y-8 max-w-6xl mx-auto">
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
               
               <TabsContent value="approvals" className="space-y-6">
-                <Card className="rounded-[2.5rem] border-none shadow-2xl overflow-hidden glass-morphism">
+                <Card className="rounded-[2.5rem] border-none shadow-2xl glass-morphism overflow-hidden">
                   <CardHeader className="bg-primary/5 p-8 text-right">
-                    <CardTitle className="text-2xl font-black">تأكيد الإيداعات</CardTitle>
-                    <CardDescription>مراجعة طلبات شحن الأرصدة المعلقة.</CardDescription>
+                    <CardTitle className="text-2xl font-black">طلبات الإيداع المعلقة</CardTitle>
                   </CardHeader>
                   <CardContent className="p-0">
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-right">
-                        <thead className="bg-muted text-[10px] uppercase font-black tracking-widest text-muted-foreground">
-                          <tr>
-                            <th className="px-8 py-4">المستخدم</th>
-                            <th className="px-8 py-4">تفاصيل التحويل</th>
-                            <th className="px-8 py-4">المبلغ</th>
-                            <th className="px-8 py-4 text-left">الإجراء</th>
+                    <table className="w-full text-right">
+                      <thead className="bg-muted text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                        <tr>
+                          <th className="px-8 py-4">المستخدم</th>
+                          <th className="px-8 py-4">المبلغ</th>
+                          <th className="px-8 py-4">العملة</th>
+                          <th className="px-8 py-4">الإجراء</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y">
+                        {pendingDeposits?.map((req) => (
+                          <tr key={req.id} className="hover:bg-accent/30 transition-colors font-bold">
+                            <td className="px-8 py-6">{req.userId}</td>
+                            <td className="px-8 py-6 text-lg">{req.amount}</td>
+                            <td className="px-8 py-6">{req.currency}</td>
+                            <td className="px-8 py-6">
+                              <Button size="sm" className="rounded-xl bg-green-500 font-black" onClick={() => handleApproveDeposit(req.id)}>موافقة</Button>
+                            </td>
                           </tr>
-                        </thead>
-                        <tbody className="divide-y">
-                          {requestsLoading ? (
-                             <tr><td colSpan={4} className="p-10 text-center"><Loader2 className="animate-spin mx-auto" /></td></tr>
-                          ) : pendingRequests?.map((req) => (
-                            <tr key={req.id} className="hover:bg-accent/30 transition-colors text-xs font-bold">
-                              <td className="px-8 py-6">{req.userId}</td>
-                              <td className="px-8 py-6 font-mono text-[10px]">{req.externalTransactionDetails}</td>
-                              <td className="px-8 py-6">
-                                <span className="text-lg font-black">{req.amount}</span> {req.currency}
-                              </td>
-                              <td className="px-8 py-6 text-left">
-                                <Button size="sm" className="rounded-xl bg-green-500 hover:bg-green-600 font-black" onClick={() => handleApprove(req.id)}>موافقة</Button>
-                              </td>
-                            </tr>
-                          ))}
-                          {pendingRequests?.length === 0 && (
-                            <tr><td colSpan={4} className="p-12 text-center text-muted-foreground font-black opacity-50">لا توجد طلبات معلقة حالياً</td></tr>
-                          )}
-                        </tbody>
-                      </table>
-                    </div>
+                        ))}
+                      </tbody>
+                    </table>
                   </CardContent>
                 </Card>
               </TabsContent>
 
-              <TabsContent value="users" className="space-y-6">
-                <Card className="rounded-[2.5rem] border-none shadow-2xl overflow-hidden glass-morphism">
+              <TabsContent value="withdraws" className="space-y-6">
+                <Card className="rounded-[2.5rem] border-none shadow-2xl glass-morphism overflow-hidden">
                   <CardHeader className="bg-primary/5 p-8 text-right">
-                    <CardTitle className="text-2xl font-black">إدارة المستخدمين</CardTitle>
-                    <CardDescription>عرض والتحكم في حسابات المستخدمين المسجلين.</CardDescription>
+                    <CardTitle className="text-2xl font-black">طلبات السحب المعلقة</CardTitle>
                   </CardHeader>
                   <CardContent className="p-0">
-                     <div className="overflow-x-auto">
-                       <table className="w-full text-right">
-                         <thead className="bg-muted text-[10px] uppercase font-black text-muted-foreground">
-                           <tr>
-                             <th className="px-8 py-4">الاسم</th>
-                             <th className="px-8 py-4">الهاتف</th>
-                             <th className="px-8 py-4">المدينة</th>
-                             <th className="px-8 py-4">الحالة</th>
-                           </tr>
-                         </thead>
-                         <tbody className="divide-y">
-                           {usersLoading ? (
-                             <tr><td colSpan={4} className="p-10 text-center"><Loader2 className="animate-spin mx-auto" /></td></tr>
-                           ) : allUsers?.map((u) => (
-                             <tr key={u.id} className="hover:bg-accent/30 transition-colors text-xs font-bold">
-                               <td className="px-8 py-6">{u.fullName}</td>
-                               <td className="px-8 py-6">{u.phoneNumber}</td>
-                               <td className="px-8 py-6">{u.city}</td>
-                               <td className="px-8 py-6">
-                                 <Badge variant="secondary" className="rounded-full font-black text-[9px] uppercase">{u.role}</Badge>
-                               </td>
-                             </tr>
-                           ))}
-                         </tbody>
-                       </table>
-                     </div>
+                    <table className="w-full text-right">
+                      <thead className="bg-muted text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                        <tr>
+                          <th className="px-8 py-4">المستخدم</th>
+                          <th className="px-8 py-4">المبلغ</th>
+                          <th className="px-8 py-4">العملة</th>
+                          <th className="px-8 py-4">التفاصيل</th>
+                          <th className="px-8 py-4">الإجراء</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y">
+                        {pendingWithdraws?.map((req) => (
+                          <tr key={req.id} className="hover:bg-accent/30 transition-colors font-bold">
+                            <td className="px-8 py-6">{req.userId}</td>
+                            <td className="px-8 py-6 text-lg">{req.amount}</td>
+                            <td className="px-8 py-6">{req.currency}</td>
+                            <td className="px-8 py-6 text-xs">{req.details}</td>
+                            <td className="px-8 py-6">
+                              <Button size="sm" className="rounded-xl bg-primary font-black" onClick={() => handleApproveWithdraw(req.id)}>تنفيذ</Button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
                   </CardContent>
                 </Card>
               </TabsContent>
 
               <TabsContent value="products" className="space-y-6">
-                <div className="flex justify-between items-center px-2">
-                  <h3 className="text-xl font-black">كتالوج الخدمات</h3>
+                <div className="flex justify-between items-center">
+                  <h3 className="text-xl font-black">كتالوج الخدمات المنظم</h3>
                   <Dialog open={isAddingProduct} onOpenChange={setIsAddingProduct}>
                     <DialogTrigger asChild>
                       <Button className="rounded-2xl gap-2 font-black shadow-lg">
                         <PlusCircle className="h-5 w-5" />
-                        إضافة منتج جديد
+                        إضافة خدمة جديدة
                       </Button>
                     </DialogTrigger>
                     <DialogContent dir="rtl" className="rounded-[2rem]">
                       <DialogHeader>
-                        <DialogTitle className="font-black text-xl text-right">إضافة منتج رقمي جديد</DialogTitle>
+                        <DialogTitle className="font-black text-xl text-right">إضافة منتج/لعبة جديدة</DialogTitle>
                       </DialogHeader>
                       <div className="space-y-4 pt-4">
                         <div className="space-y-2 text-right">
-                          <Label className="font-bold">اسم المنتج</Label>
+                          <Label className="font-bold">اسم الفئة (مثلاً: PUBG Mobile)</Label>
+                          <Input 
+                            value={newProduct.category}
+                            onChange={(e) => setNewProduct({...newProduct, category: e.target.value})}
+                            className="rounded-xl h-12"
+                            placeholder="اسم اللعبة أو الخدمة الرئيسية"
+                          />
+                        </div>
+                        <div className="space-y-2 text-right">
+                          <Label className="font-bold">اسم المنتج الفرعي</Label>
                           <Input 
                             value={newProduct.name}
                             onChange={(e) => setNewProduct({...newProduct, name: e.target.value})}
                             className="rounded-xl h-12"
-                            placeholder="مثلاً: Spotify Premium"
+                            placeholder="مثلاً: 600 UC"
                           />
                         </div>
                         <div className="grid grid-cols-2 gap-4">
@@ -295,7 +287,7 @@ export default function AdminDashboard() {
                         </div>
                       </div>
                       <DialogFooter className="mt-6">
-                        <Button className="w-full h-14 rounded-2xl font-black" onClick={handleAddProduct}>حفظ المنتج</Button>
+                        <Button className="w-full h-14 rounded-2xl font-black" onClick={handleAddProduct}>حفظ في القائمة</Button>
                       </DialogFooter>
                     </DialogContent>
                   </Dialog>
@@ -303,19 +295,16 @@ export default function AdminDashboard() {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                    {products?.map((product) => (
-                     <Card key={product.id} className="rounded-3xl border-none shadow-lg overflow-hidden glass-morphism group">
+                     <Card key={product.id} className="rounded-3xl border-none shadow-lg glass-morphism overflow-hidden group">
                         <CardContent className="p-6">
                           <div className="flex justify-between items-start mb-4">
-                            <div className="p-4 bg-primary/10 rounded-2xl text-primary group-hover:scale-110 transition-transform">
-                              <Package className="h-6 w-6" />
-                            </div>
-                            <Button size="icon" variant="ghost" className="text-red-500 hover:bg-red-50" onClick={() => handleDeleteProduct(product.id)}>
+                            <Badge variant="secondary" className="font-black text-[10px] uppercase">{product.category}</Badge>
+                            <Button size="icon" variant="ghost" className="text-red-500 hover:bg-red-50" onClick={() => deleteDocumentNonBlocking(doc(db, 'products', product.id))}>
                               <Trash2 className="h-5 w-5" />
                             </Button>
                           </div>
                           <h4 className="font-black text-lg mb-1">{product.name}</h4>
                           <p className="text-2xl font-black text-primary tracking-tighter">{product.price} <span className="text-sm">{product.currency}</span></p>
-                          <Badge className="mt-4 rounded-full font-black text-[9px] uppercase">Active Service</Badge>
                         </CardContent>
                      </Card>
                    ))}
@@ -323,33 +312,22 @@ export default function AdminDashboard() {
               </TabsContent>
 
               <TabsContent value="system" className="space-y-6">
-                <Card className="rounded-[2.5rem] border-none shadow-2xl overflow-hidden glass-morphism">
+                <Card className="rounded-[2.5rem] border-none shadow-2xl glass-morphism">
                   <CardHeader className="bg-primary/5 p-8 text-right">
                     <CardTitle className="text-2xl font-black">إعدادات المنصة</CardTitle>
-                    <CardDescription>إدارة بيانات التواصل والأسعار العامة.</CardDescription>
                   </CardHeader>
-                  <CardContent className="p-8 space-y-6">
+                  <CardContent className="p-8 space-y-6 text-right">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div className="space-y-2 text-right">
+                      <div className="space-y-2">
                         <Label className="font-bold">رقم هاتف التواصل</Label>
-                        <Input 
-                          placeholder={config?.contactPhone || "775371829"} 
-                          onChange={(e) => setEditingConfig({...editingConfig, phone: e.target.value})}
-                          className="h-12 rounded-xl"
-                        />
+                        <Input placeholder={config?.contactPhone || "775371829"} onChange={(e) => setEditingConfig({...editingConfig, phone: e.target.value})} className="h-12 rounded-xl" />
                       </div>
-                      <div className="space-y-2 text-right">
-                        <Label className="font-bold">البريد الإلكتروني للدعم</Label>
-                        <Input 
-                          placeholder={config?.contactEmail || "support@qtbm.com"} 
-                          onChange={(e) => setEditingConfig({...editingConfig, email: e.target.value})}
-                          className="h-12 rounded-xl"
-                        />
+                      <div className="space-y-2">
+                        <Label className="font-bold">البريد الإلكتروني</Label>
+                        <Input placeholder={config?.contactEmail || "support@qtbm.com"} onChange={(e) => setEditingConfig({...editingConfig, email: e.target.value})} className="h-12 rounded-xl" />
                       </div>
                     </div>
-                    <Button className="w-full h-14 rounded-2xl font-black shadow-xl" onClick={handleUpdateConfig}>
-                      حفظ إعدادات النظام
-                    </Button>
+                    <Button className="w-full h-14 rounded-2xl font-black shadow-xl" onClick={handleUpdateConfig}>حفظ التغييرات</Button>
                   </CardContent>
                 </Card>
               </TabsContent>
