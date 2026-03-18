@@ -14,6 +14,7 @@
         "city": { "type": "string" },
         "nationalIdNumber": { "type": "string" },
         "role": { "type": "string" },
+        "verificationStatus": { "type": "string", "enum": ["none", "pending", "approved", "rejected"] },
         "createdAt": { "type": "string", "format": "date-time" }
       }
     },
@@ -36,20 +37,19 @@
         "price": { "type": "number" },
         "currency": { "type": "string" },
         "iconName": { "type": "string" },
+        "imageUrl": { "type": "string" },
         "isActive": { "type": "boolean" }
       }
     },
-    "WithdrawRequest": {
-      "title": "WithdrawRequest",
+    "SystemConfig": {
+      "title": "SystemConfig",
       "type": "object",
       "properties": {
-        "userId": { "type": "string" },
-        "amount": { "type": "number" },
-        "currency": { "type": "string" },
-        "method": { "type": "string" },
-        "details": { "type": "string" },
-        "status": { "type": "string" },
-        "createdAt": { "type": "string", "format": "date-time" }
+        "contactPhone": { "type": "string" },
+        "contactEmail": { "type": "string" },
+        "usdToYerRate": { "type": "number" },
+        "usdToSarRate": { "type": "number" },
+        "usdtCommission": { "type": "number", "description": "Percentage commission for USDT purchase (e.g. 0.05 for 5%)" }
       }
     }
   },
@@ -69,9 +69,9 @@
       "schema": { "$ref": "#/backend/entities/Product" },
       "description": "System products."
     },
-    "/withdrawRequests/{requestId}": {
-      "schema": { "$ref": "#/backend/entities/WithdrawRequest" },
-      "description": "User withdrawal requests."
+    "/system/config": {
+      "schema": { "$ref": "#/backend/entities/SystemConfig" },
+      "description": "Global system configuration and rates."
     }
   }
 }

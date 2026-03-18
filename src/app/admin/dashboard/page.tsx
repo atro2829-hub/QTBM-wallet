@@ -1,37 +1,32 @@
 
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   ArrowDownLeft, 
   Package, 
   Plus,
   Trash2,
-  CheckCircle2,
-  XCircle,
-  Tag,
-  Loader2,
   Settings,
   Users,
-  MessageSquare,
-  ShieldCheck,
-  Search,
-  PlusCircle,
-  MoreVertical,
-  ArrowRightLeft,
   Layers,
   Banknote,
-  Send
+  PlusCircle,
+  Image as ImageIcon,
+  TrendingUp,
+  Percent,
+  Coins,
+  Globe,
+  Save
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { SidebarProvider, Sidebar, SidebarContent, SidebarHeader, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarInset, SidebarTrigger } from '@/components/ui/sidebar';
-import { Separator } from '@/components/ui/separator';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
-import { collection, doc, updateDoc, deleteDoc, addDoc, serverTimestamp, query, where, orderBy, setDoc, increment } from 'firebase/firestore';
+import { collection, doc, serverTimestamp, query, where, increment } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
 import { AppLogo } from '@/components/layout/AppLogo';
@@ -51,12 +46,32 @@ export default function AdminDashboard() {
     price: '',
     currency: 'USD',
     iconName: 'Package',
+    imageUrl: '',
     description: ''
   });
 
   const configRef = useMemoFirebase(() => doc(db, 'system', 'config'), [db]);
   const { data: config } = useDoc(configRef);
-  const [editingConfig, setEditingConfig] = useState({ phone: '', email: '' });
+  
+  const [rates, setRates] = useState({
+    usdToYerRate: '1500',
+    usdToSarRate: '3.75',
+    usdtCommission: '5',
+    phone: '',
+    email: ''
+  });
+
+  useEffect(() => {
+    if (config) {
+      setRates({
+        usdToYerRate: config.usdToYerRate?.toString() || '1500',
+        usdToSarRate: config.usdToSarRate?.toString() || '3.75',
+        usdtCommission: (config.usdtCommission * 100)?.toString() || '5',
+        phone: config.contactPhone || '',
+        email: config.contactEmail || ''
+      });
+    }
+  }, [config]);
 
   const productsQuery = useMemoFirebase(() => collection(db, 'products'), [db]);
   const { data: products } = useCollection(productsQuery);
@@ -74,14 +89,16 @@ export default function AdminDashboard() {
   const usersQuery = useMemoFirebase(() => collection(db, 'users'), [db]);
   const { data: allUsers } = useCollection(usersQuery);
 
-  const handleUpdateConfig = () => {
-    const configPath = doc(db, 'system', 'config');
-    setDocumentNonBlocking(configPath, {
-      contactPhone: editingConfig.phone || config?.contactPhone || '775371829',
-      contactEmail: editingConfig.email || config?.contactEmail || 'support@qtbm.com',
+  const handleUpdateSystem = () => {
+    setDocumentNonBlocking(configRef, {
+      contactPhone: rates.phone || config?.contactPhone || '775371829',
+      contactEmail: rates.email || config?.contactEmail || 'support@qtbm.com',
+      usdToYerRate: parseFloat(rates.usdToYerRate),
+      usdToSarRate: parseFloat(rates.usdToSarRate),
+      usdtCommission: parseFloat(rates.usdtCommission) / 100,
       updatedAt: serverTimestamp()
     }, { merge: true });
-    toast({ title: "تم التحديث", description: "تم حفظ إعدادات النظام بنجاح." });
+    toast({ title: "تم التحديث", description: "تم حفظ إعدادات النظام وأسعار الصرف بنجاح." });
   };
 
   const handleApproveDeposit = (req: any) => {
@@ -112,7 +129,7 @@ export default function AdminDashboard() {
     toast({ title: "تم تنفيذ السحب", description: `تم خصم ${req.amount} ${req.currency} من رصيد المستخدم.` });
   };
 
-  const handleAddProduct = async () => {
+  const handleAddProduct = () => {
     if (!newProduct.name || !newProduct.price || !newProduct.category) return;
     const productsRef = collection(db, 'products');
     addDocumentNonBlocking(productsRef, {
@@ -121,9 +138,9 @@ export default function AdminDashboard() {
       isActive: true,
       createdAt: serverTimestamp()
     });
-    setNewProduct({ name: '', category: '', price: '', currency: 'USD', iconName: 'Package', description: '' });
+    setNewProduct({ name: '', category: '', price: '', currency: 'USD', iconName: 'Package', imageUrl: '', description: '' });
     setIsAddingProduct(false);
-    toast({ title: "تمت الإضافة", description: "تم إضافة المنتج بنجاح." });
+    toast({ title: "تمت الإضافة", description: "تم إضافة المنتج للكتالوج بنجاح." });
   };
 
   return (
@@ -138,7 +155,7 @@ export default function AdminDashboard() {
               <SidebarMenuItem>
                 <SidebarMenuButton isActive={activeTab === 'approvals'} onClick={() => setActiveTab('approvals')} className="h-12 rounded-xl font-black">
                   <ArrowDownLeft className="h-5 w-5 ml-2" />
-                  <span>الإيداعات المعلقة</span>
+                  <span>طلبات الإيداع</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
@@ -162,7 +179,7 @@ export default function AdminDashboard() {
               <SidebarMenuItem>
                 <SidebarMenuButton isActive={activeTab === 'system'} onClick={() => setActiveTab('system')} className="h-12 rounded-xl font-black">
                   <Settings className="h-5 w-5 ml-2" />
-                  <span>إعدادات النظام</span>
+                  <span>إعدادات الصرف</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
             </SidebarMenu>
@@ -175,7 +192,7 @@ export default function AdminDashboard() {
               <SidebarTrigger />
               <h2 className="text-lg font-black uppercase tracking-tight">لوحة التحكم الإدارية</h2>
             </div>
-            <Badge variant="outline" className="border-primary/20 text-primary font-black">نظام QTBM النشط</Badge>
+            <Badge variant="outline" className="border-primary/20 text-primary font-black">نظام QTBM v2.0</Badge>
           </header>
 
           <main className="p-8 space-y-8 max-w-6xl mx-auto">
@@ -184,7 +201,7 @@ export default function AdminDashboard() {
               <TabsContent value="approvals" className="space-y-6">
                 <Card className="rounded-[2.5rem] border-none shadow-2xl glass-morphism overflow-hidden">
                   <CardHeader className="bg-primary/5 p-8 text-right">
-                    <CardTitle className="text-2xl font-black">طلبات الإيداع (للمراجعة)</CardTitle>
+                    <CardTitle className="text-2xl font-black">طلبات الإيداع</CardTitle>
                   </CardHeader>
                   <CardContent className="p-0">
                     <table className="w-full text-right">
@@ -209,9 +226,6 @@ export default function AdminDashboard() {
                         ))}
                       </tbody>
                     </table>
-                    {pendingDeposits?.length === 0 && (
-                      <div className="p-20 text-center opacity-30 font-black">لا توجد طلبات إيداع معلقة حالياً</div>
-                    )}
                   </CardContent>
                 </Card>
               </TabsContent>
@@ -219,7 +233,7 @@ export default function AdminDashboard() {
               <TabsContent value="withdraws" className="space-y-6">
                 <Card className="rounded-[2.5rem] border-none shadow-2xl glass-morphism overflow-hidden">
                   <CardHeader className="bg-primary/5 p-8 text-right">
-                    <CardTitle className="text-2xl font-black">طلبات السحب المعلقة</CardTitle>
+                    <CardTitle className="text-2xl font-black">طلبات السحب</CardTitle>
                   </CardHeader>
                   <CardContent className="p-0">
                     <table className="w-full text-right">
@@ -244,39 +258,8 @@ export default function AdminDashboard() {
                         ))}
                       </tbody>
                     </table>
-                    {pendingWithdraws?.length === 0 && (
-                      <div className="p-20 text-center opacity-30 font-black">لا توجد طلبات سحب معلقة حالياً</div>
-                    )}
                   </CardContent>
                 </Card>
-              </TabsContent>
-
-              <TabsContent value="users" className="space-y-6">
-                 <Card className="rounded-[2.5rem] border-none shadow-2xl glass-morphism overflow-hidden">
-                    <CardHeader className="bg-primary/5 p-8 text-right">
-                      <CardTitle className="text-2xl font-black">قائمة المستخدمين</CardTitle>
-                    </CardHeader>
-                    <CardContent className="p-0">
-                      <table className="w-full text-right">
-                        <thead className="bg-muted text-[10px] font-black uppercase tracking-widest text-muted-foreground">
-                          <tr>
-                            <th className="px-8 py-4">الاسم الكامل</th>
-                            <th className="px-8 py-4">رقم الهاتف</th>
-                            <th className="px-8 py-4">UID</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y">
-                          {allUsers?.map((user) => (
-                            <tr key={user.id} className="hover:bg-accent/30 transition-colors">
-                              <td className="px-8 py-6 font-bold">{user.fullName}</td>
-                              <td className="px-8 py-6">{user.phoneNumber}</td>
-                              <td className="px-8 py-6 font-mono text-xs">{user.id}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </CardContent>
-                 </Card>
               </TabsContent>
 
               <TabsContent value="products" className="space-y-6">
@@ -286,21 +269,28 @@ export default function AdminDashboard() {
                     <DialogTrigger asChild>
                       <Button className="rounded-2xl gap-2 font-black shadow-lg shadow-primary/20">
                         <PlusCircle className="h-5 w-5" />
-                        إضافة خدمة جديدة
+                        إضافة منتج بصورة
                       </Button>
                     </DialogTrigger>
-                    <DialogContent dir="rtl" className="rounded-[2rem] border-none shadow-2xl">
+                    <DialogContent dir="rtl" className="rounded-[2rem] border-none shadow-2xl max-w-lg">
                       <DialogHeader>
-                        <DialogTitle className="text-xl font-black text-right">إضافة منتج/خدمة للكتالوج</DialogTitle>
+                        <DialogTitle className="text-xl font-black text-right">إضافة منتج جديد</DialogTitle>
                       </DialogHeader>
                       <div className="space-y-4 pt-4">
                         <div className="space-y-2 text-right">
-                           <Label className="text-xs font-black opacity-60">الفئة (مثال: PUBG, Netflix)</Label>
+                           <Label className="text-xs font-black opacity-60">الفئة (مثال: PUBG, Free Fire)</Label>
                            <Input value={newProduct.category} onChange={(e) => setNewProduct({...newProduct, category: e.target.value})} placeholder="أدخل الفئة" className="h-12 rounded-xl" />
                         </div>
                         <div className="space-y-2 text-right">
                            <Label className="text-xs font-black opacity-60">اسم الخدمة</Label>
                            <Input value={newProduct.name} onChange={(e) => setNewProduct({...newProduct, name: e.target.value})} placeholder="مثال: 600 UC" className="h-12 rounded-xl" />
+                        </div>
+                        <div className="space-y-2 text-right">
+                           <Label className="text-xs font-black opacity-60">رابط صورة المنتج (URL)</Label>
+                           <div className="relative">
+                             <ImageIcon className="absolute right-3 top-3 h-5 w-5 text-muted-foreground" />
+                             <Input value={newProduct.imageUrl} onChange={(e) => setNewProduct({...newProduct, imageUrl: e.target.value})} placeholder="https://image-url.com/photo.jpg" className="h-12 rounded-xl pr-10" />
+                           </div>
                         </div>
                         <div className="grid grid-cols-2 gap-4">
                           <div className="space-y-2 text-right">
@@ -321,7 +311,7 @@ export default function AdminDashboard() {
                         </div>
                       </div>
                       <DialogFooter className="mt-6">
-                        <Button onClick={handleAddProduct} className="w-full h-12 rounded-xl font-black">حفظ وإضافة للكتالوج</Button>
+                        <Button onClick={handleAddProduct} className="w-full h-12 rounded-xl font-black">حفظ وإضافة للمتجر</Button>
                       </DialogFooter>
                     </DialogContent>
                   </Dialog>
@@ -329,9 +319,16 @@ export default function AdminDashboard() {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   {products?.map((p) => (
                     <Card key={p.id} className="rounded-2xl shadow-sm border-none glass-morphism overflow-hidden">
+                      <div className="h-32 bg-muted relative group overflow-hidden">
+                        {p.imageUrl ? (
+                          <img src={p.imageUrl} alt={p.name} className="w-full h-full object-cover transition-transform group-hover:scale-110" />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center opacity-20"><Package className="h-10 w-10" /></div>
+                        )}
+                        <Badge className="absolute top-2 right-2 bg-primary/80 backdrop-blur-md">{p.category}</Badge>
+                      </div>
                       <CardContent className="p-4 flex justify-between items-center">
                         <div className="text-right">
-                          <p className="font-bold text-[10px] opacity-50 uppercase tracking-widest">{p.category}</p>
                           <h4 className="font-black text-sm">{p.name}</h4>
                           <p className="text-primary font-black">{p.price.toLocaleString()} {p.currency}</p>
                         </div>
@@ -345,23 +342,49 @@ export default function AdminDashboard() {
               </TabsContent>
 
               <TabsContent value="system" className="space-y-6">
-                <Card className="rounded-[2.5rem] border-none shadow-2xl glass-morphism p-8 space-y-6">
-                  <div className="text-right">
-                    <CardTitle className="text-xl font-black">إعدادات النظام والتواصل</CardTitle>
-                    <CardDescription>تحديث بيانات الدعم الفني التي تظهر للمستخدمين.</CardDescription>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-2 text-right">
-                       <Label className="font-black">رقم هاتف الدعم (واتساب)</Label>
-                       <Input placeholder="775371829" className="h-12 rounded-xl" onChange={(e) => setEditingConfig({...editingConfig, phone: e.target.value})} />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  <Card className="rounded-[2.5rem] border-none shadow-2xl glass-morphism p-8 space-y-6">
+                    <div className="text-right">
+                      <CardTitle className="text-xl font-black flex items-center gap-2 justify-end">فوارق العملات <TrendingUp className="h-5 w-5 text-primary" /></CardTitle>
+                      <CardDescription>تحديد أسعار الصرف مقابل الدولار (USD).</CardDescription>
                     </div>
-                    <div className="space-y-2 text-right">
-                       <Label className="font-black">البريد الإلكتروني للدعم</Label>
-                       <Input placeholder="support@qtbm.com" className="h-12 rounded-xl" onChange={(e) => setEditingConfig({...editingConfig, email: e.target.value})} />
+                    <div className="space-y-4">
+                      <div className="space-y-2 text-right">
+                         <Label className="font-bold text-xs">سعر صرف USD إلى YER</Label>
+                         <Input value={rates.usdToYerRate} onChange={(e) => setRates({...rates, usdToYerRate: e.target.value})} className="h-12 rounded-xl font-mono text-lg" />
+                      </div>
+                      <div className="space-y-2 text-right">
+                         <Label className="font-bold text-xs">سعر صرف USD إلى SAR</Label>
+                         <Input value={rates.usdToSarRate} onChange={(e) => setRates({...rates, usdToSarRate: e.target.value})} className="h-12 rounded-xl font-mono text-lg" />
+                      </div>
+                      <div className="space-y-2 text-right">
+                         <Label className="font-bold text-xs flex items-center gap-1 justify-end">عمولة الكريبتو USDT (%) <Percent className="h-3 w-3" /></Label>
+                         <Input value={rates.usdtCommission} onChange={(e) => setRates({...rates, usdtCommission: e.target.value})} className="h-12 rounded-xl font-mono text-lg" />
+                      </div>
                     </div>
-                  </div>
-                  <Button className="w-full h-14 rounded-2xl font-black text-lg shadow-xl" onClick={handleUpdateConfig}>حفظ الإعدادات الجديدة</Button>
-                </Card>
+                  </Card>
+
+                  <Card className="rounded-[2.5rem] border-none shadow-2xl glass-morphism p-8 space-y-6">
+                    <div className="text-right">
+                      <CardTitle className="text-xl font-black flex items-center gap-2 justify-end">بيانات التواصل <Globe className="h-5 w-5 text-blue-500" /></CardTitle>
+                      <CardDescription>تحديث بيانات الدعم الفني للمحفظة.</CardDescription>
+                    </div>
+                    <div className="space-y-4">
+                      <div className="space-y-2 text-right">
+                         <Label className="font-bold text-xs">رقم الواتساب للدعم</Label>
+                         <Input value={rates.phone} onChange={(e) => setRates({...rates, phone: e.target.value})} className="h-12 rounded-xl" />
+                      </div>
+                      <div className="space-y-2 text-right">
+                         <Label className="font-bold text-xs">البريد الإلكتروني</Label>
+                         <Input value={rates.email} onChange={(e) => setRates({...rates, email: e.target.value})} className="h-12 rounded-xl" />
+                      </div>
+                    </div>
+                    <Button className="w-full h-14 rounded-2xl font-black text-lg shadow-xl mt-4" onClick={handleUpdateSystem}>
+                      <Save className="h-5 w-5 ml-2" />
+                      حفظ كافة الإعدادات
+                    </Button>
+                  </Card>
+                </div>
               </TabsContent>
 
             </Tabs>

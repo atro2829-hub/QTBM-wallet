@@ -1,9 +1,9 @@
 
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowRight, Search, Music, Tv, Gamepad2, ShoppingCart, Coins, Info, Loader2, Sparkles, TrendingUp, ChevronLeft } from 'lucide-react';
+import { ArrowRight, Coins, Gamepad2, Loader2, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -32,8 +32,21 @@ export default function ServicesPage() {
   const walletRef = useMemoFirebase(() => currentUser ? doc(db, 'users', currentUser.uid, 'wallet', 'wallet') : null, [db, currentUser]);
   const { data: wallet } = useDoc(walletRef);
 
-  const COMMISSION_RATE = 0.05;
-  const usdtTotal = usdtAmount ? (parseFloat(usdtAmount) * (1 + COMMISSION_RATE)).toFixed(2) : '0.00';
+  const configRef = useMemoFirebase(() => doc(db, 'system', 'config'), [db]);
+  const { data: config } = useDoc(configRef);
+
+  const COMMISSION_RATE = config?.usdtCommission || 0.05;
+  const YER_RATE = config?.usdToYerRate || 1500;
+  const SAR_RATE = config?.usdToSarRate || 3.75;
+
+  const getUsdtTotal = () => {
+    if (!usdtAmount) return '0.00';
+    const baseUsd = parseFloat(usdtAmount) * (1 + COMMISSION_RATE);
+    
+    if (purchaseCurrency === 'YER') return (baseUsd * YER_RATE).toLocaleString();
+    if (purchaseCurrency === 'SAR') return (baseUsd * SAR_RATE).toLocaleString();
+    return baseUsd.toFixed(2);
+  };
 
   const handleBuyProduct = async (product: any) => {
     if (!currentUser || !wallet) return;
@@ -69,12 +82,17 @@ export default function ServicesPage() {
   const handleBuyUsdt = async () => {
     if (!currentUser || !wallet) return;
     const amount = parseFloat(usdtAmount);
-    const totalWithCommission = parseFloat(usdtTotal);
+    if (isNaN(amount) || amount <= 0) return;
+
+    const baseUsd = amount * (1 + COMMISSION_RATE);
+    let totalCost = baseUsd;
+    if (purchaseCurrency === 'YER') totalCost = baseUsd * YER_RATE;
+    if (purchaseCurrency === 'SAR') totalCost = baseUsd * SAR_RATE;
+
     const balanceKey = `${purchaseCurrency.toLowerCase()}Balance` as keyof typeof wallet;
     const currentBalance = (wallet[balanceKey] as number) || 0;
 
-    if (isNaN(amount) || amount <= 0) return;
-    if (currentBalance < totalWithCommission) {
+    if (currentBalance < totalCost) {
       toast({ title: "رصيد غير كافٍ", variant: "destructive" });
       return;
     }
@@ -84,7 +102,7 @@ export default function ServicesPage() {
       await addDoc(collection(db, 'users', currentUser.uid, 'transactions'), {
         initiatorUserId: currentUser.uid,
         type: 'purchase',
-        amount: totalWithCommission,
+        amount: totalCost,
         currency: purchaseCurrency,
         description: `شراء ${amount} USDT`,
         status: 'Completed',
@@ -99,7 +117,6 @@ export default function ServicesPage() {
     }
   };
 
-  // Group products by category
   const categories = products ? Array.from(new Set(products.map(p => p.category))) : [];
 
   return (
@@ -116,7 +133,7 @@ export default function ServicesPage() {
       <main className="p-6 space-y-8 flex-1 overflow-y-auto">
         <Tabs defaultValue="crypto" className="w-full">
           <TabsList className="w-full h-14 glass-morphism p-1 rounded-2xl bg-card/30 flex gap-1 mb-6">
-            <TabsTrigger value="crypto" className="flex-1 rounded-xl font-bold h-full">العملات الرقمية</TabsTrigger>
+            <TabsTrigger value="crypto" className="flex-1 rounded-xl font-bold h-full">الكريبتو</TabsTrigger>
             <TabsTrigger value="digital" className="flex-1 rounded-xl font-bold h-full">الألعاب والخدمات</TabsTrigger>
           </TabsList>
 
@@ -124,7 +141,7 @@ export default function ServicesPage() {
             <Card className="glass-morphism border-primary/20 bg-gradient-to-br from-primary/10 via-transparent to-transparent rounded-[2.5rem] shadow-xl">
               <CardHeader className="text-right">
                 <CardTitle className="flex items-center gap-2 justify-end">شراء USDT <Coins className="h-5 w-5 text-yellow-600" /></CardTitle>
-                <CardDescription className="font-bold">عمولة 5% فقط - تحويل فوري</CardDescription>
+                <CardDescription className="font-bold">تحويل فوري بعمولة {(COMMISSION_RATE * 100).toFixed(1)}%</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
                 <div className="space-y-2 text-right">
@@ -137,15 +154,18 @@ export default function ServicesPage() {
                       <SelectTrigger className="h-12 rounded-2xl glass-morphism"><SelectValue /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="USD">USD</SelectItem>
-                        <SelectItem value="YER">YER</SelectItem>
-                        <SelectItem value="SAR">SAR</SelectItem>
+                        <SelectItem value="YER">YER (بسعر {YER_RATE})</SelectItem>
+                        <SelectItem value="SAR">SAR (بسعر {SAR_RATE})</SelectItem>
                       </SelectContent>
                    </Select>
                 </div>
                 <div className="p-5 bg-primary/5 rounded-[2rem] border border-primary/10 space-y-2">
-                  <div className="flex justify-between font-bold text-sm"><span>المجموع بالعلمة المختارة:</span> <span>{usdtTotal} {purchaseCurrency}</span></div>
+                  <div className="flex justify-between font-bold text-sm">
+                    <span>التكلفة الإجمالية:</span> 
+                    <span className="text-primary">{getUsdtTotal()} {purchaseCurrency}</span>
+                  </div>
                 </div>
-                <Button className="w-full h-16 rounded-[2rem] font-black text-lg shadow-xl" disabled={isProcessing} onClick={handleBuyUsdt}>إتمام الشراء</Button>
+                <Button className="w-full h-16 rounded-[2rem] font-black text-lg shadow-xl" disabled={isProcessing} onClick={handleBuyUsdt}>إتمام الشراء الآن</Button>
               </CardContent>
             </Card>
           </TabsContent>
@@ -162,21 +182,27 @@ export default function ServicesPage() {
                   </AccordionTrigger>
                   <AccordionContent className="pt-4 space-y-3 px-2">
                     {products?.filter(p => p.category === cat).map((product) => (
-                      <Card key={product.id} className="glass-morphism rounded-2xl border-none shadow-sm group">
-                        <CardContent className="p-4 flex items-center justify-between">
-                          <div className="text-right">
+                      <Card key={product.id} className="glass-morphism rounded-2xl border-none shadow-sm group overflow-hidden">
+                        <div className="flex items-center p-4 gap-4">
+                          <div className="h-16 w-16 bg-muted rounded-xl overflow-hidden shrink-0">
+                            {product.imageUrl ? (
+                              <img src={product.imageUrl} alt={product.name} className="w-full h-full object-cover" />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center opacity-20"><Gamepad2 className="h-8 w-8" /></div>
+                            )}
+                          </div>
+                          <div className="flex-1 text-right">
                             <h4 className="font-black text-xs">{product.name}</h4>
-                            <p className="text-primary font-black text-sm tracking-tighter">{product.price} {product.currency}</p>
+                            <p className="text-primary font-black text-sm">{product.price.toLocaleString()} {product.currency}</p>
                           </div>
                           <Button size="sm" className="rounded-xl px-6 font-black" onClick={() => handleBuyProduct(product)}>شراء</Button>
-                        </CardContent>
+                        </div>
                       </Card>
                     ))}
                   </AccordionContent>
                 </AccordionItem>
               ))}
             </Accordion>
-            {categories.length === 0 && <p className="text-center py-10 opacity-50 font-black">لا يوجد منتجات حالياً</p>}
           </TabsContent>
         </Tabs>
       </main>
