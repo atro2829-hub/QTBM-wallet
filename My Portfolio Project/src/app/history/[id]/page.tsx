@@ -1,12 +1,12 @@
 
 /**
- * @fileOverview Static export compatibility for portfolio version.
+ * @fileOverview Portfolio version static export compatibility.
  */
 
 export const dynamicParams = false;
 
 export function generateStaticParams() {
-  return [{ id: 'default' }];
+  return [{ id: 'view' }];
 }
 
 export default function PortfolioStaticHistoryIdPage() {

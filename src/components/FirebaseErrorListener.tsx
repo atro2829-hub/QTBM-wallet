@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -7,33 +8,28 @@ import { FirestorePermissionError } from '@/firebase/errors';
 /**
  * An invisible component that listens for globally emitted 'permission-error' events.
  * It throws any received error to be caught by Next.js's global-error.tsx.
+ * Added safety check for 'window' to prevent Internal Server Error during static build.
  */
 export function FirebaseErrorListener() {
-  // Use the specific error type for the state for type safety.
   const [error, setError] = useState<FirestorePermissionError | null>(null);
 
   useEffect(() => {
-    // The callback now expects a strongly-typed error, matching the event payload.
     const handleError = (error: FirestorePermissionError) => {
-      // Set error in state to trigger a re-render.
       setError(error);
     };
 
-    // The typed emitter will enforce that the callback for 'permission-error'
-    // matches the expected payload type (FirestorePermissionError).
     errorEmitter.on('permission-error', handleError);
 
-    // Unsubscribe on unmount to prevent memory leaks.
     return () => {
       errorEmitter.off('permission-error', handleError);
     };
   }, []);
 
-  // On re-render, if an error exists in state, throw it.
-  if (error) {
+  // Critical fix: Only throw error if we are on the client side.
+  // Next.js tries to render this during build, and throwing here causes "Internal Server Error".
+  if (error && typeof window !== 'undefined') {
     throw error;
   }
 
-  // This component renders nothing.
   return null;
 }

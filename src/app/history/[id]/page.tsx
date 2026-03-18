@@ -1,16 +1,22 @@
 
 /**
- * @fileOverview توافق التصدير الثابت لـ Next.js (output: export).
- * يتم استخدام دالة generateStaticParams لضمان نجاح بناء تطبيق الأندرويد.
+ * @fileOverview Static export compatibility for Next.js.
+ * This file ensures that dynamic routes do not break the "output: export" build process.
  */
 
 export const dynamicParams = false;
 
 export function generateStaticParams() {
-  // تزويد معرّف افتراضي لإرضاء محرك البناء الثابت
+  // Provide a default parameter to satisfy the static export engine.
   return [{ id: 'view' }];
 }
 
-export default function StaticHistoryPage() {
-  return <div className="hidden" aria-hidden="true" />;
+export default function StaticHistoryIdPage() {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-background" aria-hidden="true">
+      <div className="animate-pulse text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground">
+        Redirecting to safe route...
+      </div>
+    </div>
+  );
 }

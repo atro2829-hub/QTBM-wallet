@@ -298,7 +298,7 @@ export function AdminDashboardContent() {
               <TabsContent value="system" className="space-y-6">
                 <Card className="rounded-[2.5rem] border-none shadow-2xl glass-morphism p-8 space-y-6 max-w-2xl mx-auto">
                   <CardHeader>
-                    <CardTitle className="text-xl font-black text-right">إعدادات الصرف والعمولات</CardTitle>
+                    <CardTitle className="text-xl font-black text-right">إعدادات النظام</CardTitle>
                     <CardDescription className="text-right">تحكم في أسعار الصرف العالمية المعتمدة داخل التطبيق لعمليات التبادل.</CardDescription>
                   </CardHeader>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-right">
