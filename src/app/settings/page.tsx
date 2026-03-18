@@ -22,7 +22,7 @@ import { Switch } from '@/components/ui/switch';
 import { BottomNav } from '@/components/layout/BottomNav';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useUser, useFirestore, useDoc } from '@/firebase';
+import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc, updateDoc } from 'firebase/firestore';
 import { signOut } from 'firebase/auth';
 import { useAuth } from '@/firebase';
@@ -33,7 +33,7 @@ export default function SettingsPage() {
   const auth = useAuth();
   const db = useFirestore();
   
-  const userProfileRef = React.useMemo(() => user ? doc(db, 'users', user.uid) : null, [db, user]);
+  const userProfileRef = useMemoFirebase(() => user ? doc(db, 'users', user.uid) : null, [db, user]);
   const { data: profile, isLoading: isProfileLoading } = useDoc(userProfileRef);
 
   const [darkMode, setDarkMode] = useState(false);
@@ -71,7 +71,12 @@ export default function SettingsPage() {
     router.push('/auth/login');
   };
 
-  if (isProfileLoading) return <div className="flex items-center justify-center min-h-screen"><Loader2 className="animate-spin h-10 w-10 text-primary" /></div>;
+  if (isProfileLoading) return (
+    <div className="flex items-center justify-center min-h-screen">
+      <Loader2 className="animate-spin h-10 w-10 text-primary" />
+    </div>
+  );
+  
   if (!user || !profile) return null;
 
   const isAdmin = profile.role === 'admin';
@@ -102,8 +107,9 @@ export default function SettingsPage() {
           </p>
         </div>
 
+        {/* Conditional Rendering: Admin Section ONLY for admins */}
         {isAdmin && (
-          <section className="space-y-3">
+          <section className="space-y-3 animate-in fade-in slide-in-from-bottom-2 duration-500">
             <h3 className="px-2 text-[10px] font-black uppercase tracking-[0.2em] text-primary/70">صلاحيات الإدارة</h3>
             <Button 
               onClick={() => router.push('/admin/dashboard')}

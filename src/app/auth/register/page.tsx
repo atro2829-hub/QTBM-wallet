@@ -57,15 +57,10 @@ export default function RegisterPage() {
         nationalIdNumber: formData.nationalId,
         preferredTheme: 'light',
         preferredLanguage: 'AR',
-        role: 'admin',
+        role: 'user', // Default is now 'user'. Change manually in console to 'admin' for testing.
+        verificationStatus: 'none',
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp()
-      }, { merge: true });
-
-      const adminRoleRef = doc(db, 'roles_admin', user.uid);
-      setDocumentNonBlocking(adminRoleRef, {
-        uid: user.uid,
-        grantedAt: serverTimestamp()
       }, { merge: true });
 
       const walletRef = doc(db, 'users', user.uid, 'wallet', 'wallet');
@@ -112,10 +107,10 @@ export default function RegisterPage() {
                 <Label htmlFor="fullName">الاسم القانوني الكامل</Label>
                 <div className="relative">
                   <User className="absolute right-3 top-3 h-4 w-4 text-muted-foreground" />
-                  <Input 
+                  <input 
                     id="fullName" 
                     placeholder="أدخل اسمك كما في الهوية" 
-                    className="pr-10 text-right h-12 rounded-2xl" 
+                    className="flex h-12 w-full pr-10 text-right bg-background/50 border-none rounded-2xl px-4 text-sm focus:ring-2 focus:ring-primary outline-none" 
                     value={formData.fullName}
                     onChange={(e) => setFormData({...formData, fullName: e.target.value})}
                     required 
@@ -127,11 +122,11 @@ export default function RegisterPage() {
                 <Label htmlFor="phone">رقم الهاتف</Label>
                 <div className="relative">
                   <Phone className="absolute right-3 top-3 h-4 w-4 text-muted-foreground" />
-                  <Input 
+                  <input 
                     id="phone" 
                     type="tel"
                     placeholder="7xxxxxxx" 
-                    className="pr-10 text-right h-12 rounded-2xl" 
+                    className="flex h-12 w-full pr-10 text-right bg-background/50 border-none rounded-2xl px-4 text-sm focus:ring-2 focus:ring-primary outline-none" 
                     value={formData.phone}
                     onChange={(e) => setFormData({...formData, phone: e.target.value})}
                     required 
@@ -144,10 +139,10 @@ export default function RegisterPage() {
                   <Label htmlFor="city">المدينة</Label>
                   <div className="relative">
                     <Building2 className="absolute right-3 top-3 h-4 w-4 text-muted-foreground" />
-                    <Input 
+                    <input 
                       id="city" 
                       placeholder="عدن، صنعاء..." 
-                      className="pr-10 text-right h-12 rounded-2xl" 
+                      className="flex h-12 w-full pr-10 text-right bg-background/50 border-none rounded-2xl px-4 text-sm focus:ring-2 focus:ring-primary outline-none" 
                       value={formData.city}
                       onChange={(e) => setFormData({...formData, city: e.target.value})}
                       required 
@@ -158,10 +153,10 @@ export default function RegisterPage() {
                   <Label htmlFor="address">العنوان</Label>
                   <div className="relative">
                     <MapPin className="absolute right-3 top-3 h-4 w-4 text-muted-foreground" />
-                    <Input 
+                    <input 
                       id="address" 
                       placeholder="الشارع، الحي..." 
-                      className="pr-10 text-right h-12 rounded-2xl" 
+                      className="flex h-12 w-full pr-10 text-right bg-background/50 border-none rounded-2xl px-4 text-sm focus:ring-2 focus:ring-primary outline-none" 
                       value={formData.address}
                       onChange={(e) => setFormData({...formData, address: e.target.value})}
                       required 
@@ -174,10 +169,10 @@ export default function RegisterPage() {
                 <Label htmlFor="nationalId">رقم الهوية الوطنية</Label>
                 <div className="relative">
                   <IdCard className="absolute right-3 top-3 h-4 w-4 text-muted-foreground" />
-                  <Input 
+                  <input 
                     id="nationalId" 
                     placeholder="أدخل رقم الهوية" 
-                    className="pr-10 text-right h-12 rounded-2xl" 
+                    className="flex h-12 w-full pr-10 text-right bg-background/50 border-none rounded-2xl px-4 text-sm focus:ring-2 focus:ring-primary outline-none" 
                     value={formData.nationalId}
                     onChange={(e) => setFormData({...formData, nationalId: e.target.value})}
                     required 
@@ -189,11 +184,11 @@ export default function RegisterPage() {
                 <Label htmlFor="email">البريد الإلكتروني</Label>
                 <div className="relative">
                   <Mail className="absolute right-3 top-3 h-4 w-4 text-muted-foreground" />
-                  <Input 
+                  <input 
                     id="email" 
                     type="email" 
                     placeholder="example@mail.com" 
-                    className="pr-10 text-right h-12 rounded-2xl" 
+                    className="flex h-12 w-full pr-10 text-right bg-background/50 border-none rounded-2xl px-4 text-sm focus:ring-2 focus:ring-primary outline-none" 
                     value={formData.email}
                     onChange={(e) => setFormData({...formData, email: e.target.value})}
                     required 
@@ -206,11 +201,11 @@ export default function RegisterPage() {
                   <Label htmlFor="password">كلمة المرور</Label>
                   <div className="relative">
                     <Lock className="absolute right-3 top-3 h-4 w-4 text-muted-foreground" />
-                    <Input 
+                    <input 
                       id="password" 
                       type="password" 
                       placeholder="••••••••" 
-                      className="pr-10 text-right h-12 rounded-2xl" 
+                      className="flex h-12 w-full pr-10 text-right bg-background/50 border-none rounded-2xl px-4 text-sm focus:ring-2 focus:ring-primary outline-none" 
                       value={formData.password}
                       onChange={(e) => setFormData({...formData, password: e.target.value})}
                       required 
@@ -221,11 +216,11 @@ export default function RegisterPage() {
                   <Label htmlFor="confirmPassword">تأكيد</Label>
                   <div className="relative">
                     <Lock className="absolute right-3 top-3 h-4 w-4 text-muted-foreground" />
-                    <Input 
+                    <input 
                       id="confirmPassword" 
                       type="password" 
                       placeholder="••••••••" 
-                      className="pr-10 text-right h-12 rounded-2xl" 
+                      className="flex h-12 w-full pr-10 text-right bg-background/50 border-none rounded-2xl px-4 text-sm focus:ring-2 focus:ring-primary outline-none" 
                       value={formData.confirmPassword}
                       onChange={(e) => setFormData({...formData, confirmPassword: e.target.value})}
                       required 

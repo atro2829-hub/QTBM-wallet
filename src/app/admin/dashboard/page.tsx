@@ -2,6 +2,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { 
   ArrowDownLeft, 
   Package, 
@@ -17,7 +18,9 @@ import {
   Percent,
   Coins,
   Globe,
-  Save
+  Save,
+  Loader2,
+  ShieldAlert
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -25,7 +28,7 @@ import { SidebarProvider, Sidebar, SidebarContent, SidebarHeader, SidebarMenu, S
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
+import { useFirestore, useCollection, useMemoFirebase, useDoc, useUser } from '@/firebase';
 import { collection, doc, serverTimestamp, query, where, increment } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
@@ -35,11 +38,16 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 export default function AdminDashboard() {
+  const router = useRouter();
   const db = useFirestore();
   const { toast } = useToast();
+  const { user, isUserLoading } = useUser();
   const [activeTab, setActiveTab] = useState('approvals');
   const [isAddingProduct, setIsAddingProduct] = useState(false);
   
+  const userProfileRef = useMemoFirebase(() => user ? doc(db, 'users', user.uid) : null, [db, user]);
+  const { data: profile, isLoading: profileLoading } = useDoc(userProfileRef);
+
   const [newProduct, setNewProduct] = useState({
     name: '',
     category: '',
@@ -68,10 +76,19 @@ export default function AdminDashboard() {
         usdToSarRate: config.usdToSarRate?.toString() || '3.75',
         usdtCommission: (config.usdtCommission * 100)?.toString() || '5',
         phone: config.contactPhone || '',
-        email: config.contactEmail || ''
+        email: config.contactEmail || 'support@qtbm.com'
       });
     }
   }, [config]);
+
+  // Security Check: Redirect if not admin
+  useEffect(() => {
+    if (!isUserLoading && !profileLoading && profile) {
+      if (profile.role !== 'admin') {
+        router.push('/dashboard');
+      }
+    }
+  }, [profile, isUserLoading, profileLoading, router]);
 
   const productsQuery = useMemoFirebase(() => collection(db, 'products'), [db]);
   const { data: products } = useCollection(productsQuery);
@@ -86,8 +103,24 @@ export default function AdminDashboard() {
   [db]);
   const { data: pendingWithdraws } = useCollection(pendingWithdrawsQuery);
 
-  const usersQuery = useMemoFirebase(() => collection(db, 'users'), [db]);
-  const { data: allUsers } = useCollection(usersQuery);
+  if (isUserLoading || profileLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <Loader2 className="h-10 w-10 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (profile?.role !== 'admin') {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center gap-4 bg-background p-8 text-center" dir="rtl">
+        <ShieldAlert className="h-16 w-16 text-destructive" />
+        <h2 className="text-2xl font-black">دخول غير مصرح به</h2>
+        <p className="text-muted-foreground font-bold">عذراً، هذه اللوحة مخصصة لمدراء النظام فقط.</p>
+        <Button onClick={() => router.push('/dashboard')} className="rounded-xl font-black px-8">العودة للرئيسية</Button>
+      </div>
+    );
+  }
 
   const handleUpdateSystem = () => {
     setDocumentNonBlocking(configRef, {
