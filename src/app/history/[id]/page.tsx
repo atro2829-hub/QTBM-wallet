@@ -1,21 +1,16 @@
 /**
- * @fileOverview This file handles dynamic history routes for portfolio static export.
- * Satisfies the requirement for 'output: export' in Next.js.
+ * @fileOverview This file handles dynamic history routes for static export.
+ * Neutralized to satisfy 'output: export' requirements.
  */
 
 export const dynamicParams = false;
 
 export function generateStaticParams() {
-  // Provide a default path so static export doesn't fail.
+  // Provide a default path so static export succeeds.
   return [{ id: 'default' }];
 }
 
-interface PortfolioHistoryIdPageProps {
-  params: Promise<{ id: string }>;
-}
-
-export default async function PortfolioHistoryIdPage({ params }: PortfolioHistoryIdPageProps) {
-  // This page is a placeholder because the app uses /history/detail?id=...
-  // for better compatibility with static exports and Android webview.
+export default function StaticHistoryIdPage() {
+  // The app uses /history/detail?id=... for better compatibility.
   return null;
 }

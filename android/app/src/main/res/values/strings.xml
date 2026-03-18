@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">QTBM Wallet</string>
+    <string name="title_activity_main">QTBM Wallet</string>
+    <string name="package_name">com.qtbm.wallet</string>
+    <string name="custom_url_scheme">com.qtbm.wallet</string>
+</resources>

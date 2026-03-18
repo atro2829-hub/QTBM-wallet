@@ -2,11 +2,11 @@
 "use client";
 
 import React from 'react';
-import AdminDashboardContent from '@/app/admin/dashboard/page';
+import { AdminDashboardContent } from '@/components/admin/AdminDashboard';
 
 /**
- * نسخة عرض للوحة تحكم المسؤول في ملف الأعمال.
- * تقوم باستدعاء المكون الأساسي لضمان عمل الواجهة وصحتها البرمجية.
+ * Portfolio version of Admin Dashboard.
+ * Fixes "Internal Server Error" by using the refactored shared content component.
  */
 export default function PortfolioAdminDashboard() {
   return <AdminDashboardContent />;

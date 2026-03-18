@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useRef, Suspense } from 'react';
+import React, { useRef, Suspense, useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { 
   ArrowRight, 
@@ -24,6 +24,11 @@ function PortfolioStatementContent() {
   const { user } = useUser();
   const db = useFirestore();
   const printRef = useRef<HTMLDivElement>(null);
+  const [currentDate, setCurrentDate] = useState<string | null>(null);
+
+  useEffect(() => {
+    setCurrentDate(format(new Date(), 'yyyy-MM-dd HH:mm'));
+  }, []);
 
   const dateFrom = searchParams.get('from');
   const dateTo = searchParams.get('to');
@@ -69,6 +74,7 @@ function PortfolioStatementContent() {
           <div className="text-left">
             <h1 className="text-2xl font-black">كشف الحساب الرقمي</h1>
             <p className="text-xs text-muted-foreground">UID: {user?.uid}</p>
+            <p className="text-[10px] text-muted-foreground">التاريخ: {currentDate || '...'}</p>
           </div>
         </div>
         

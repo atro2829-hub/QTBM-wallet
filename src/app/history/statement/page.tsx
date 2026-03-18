@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useRef, Suspense } from 'react';
+import React, { useRef, Suspense, useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { 
   ArrowRight, 
@@ -28,6 +28,12 @@ function AccountStatementContent() {
   const { user } = useUser();
   const db = useFirestore();
   const printRef = useRef<HTMLDivElement>(null);
+  const [currentDate, setCurrentDate] = useState<string | null>(null);
+
+  // Avoid hydration mismatch for new Date()
+  useEffect(() => {
+    setCurrentDate(format(new Date(), 'yyyy-MM-dd HH:mm'));
+  }, []);
 
   const dateFrom = searchParams.get('from');
   const dateTo = searchParams.get('to');
@@ -108,7 +114,7 @@ function AccountStatementContent() {
             <h2 className="text-3xl font-black uppercase text-slate-800">كشف حساب</h2>
             <div className="text-[10px] font-mono font-bold text-muted-foreground uppercase space-y-1">
               <p>رقم الحساب (UID): {user?.uid}</p>
-              <p>تاريخ الاستخراج: {format(new Date(), 'yyyy-MM-dd HH:mm')}</p>
+              <p>تاريخ الاستخراج: {currentDate || '...'}</p>
               <p>تاريخ البداية: {dateFrom}</p>
               <p>تاريخ النهاية: {dateTo}</p>
             </div>

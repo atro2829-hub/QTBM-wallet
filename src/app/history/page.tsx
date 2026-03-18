@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, ArrowUpRight, ArrowDownLeft, Clock, ShoppingBag, Loader2, ChevronLeft, FileText, Download, Calendar as CalendarIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -20,12 +20,16 @@ export default function HistoryPage() {
   const db = useFirestore();
   const [isStatementOpen, setIsStatementOpen] = useState(false);
   
-  // Default dates: last 30 days
-  const defaultFrom = new Date();
-  defaultFrom.setDate(defaultFrom.getDate() - 30);
-  
-  const [dateFrom, setDateFrom] = useState(format(defaultFrom, 'yyyy-MM-dd'));
-  const [dateTo, setDateTo] = useState(format(new Date(), 'yyyy-MM-dd'));
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
+
+  // Avoid hydration mismatch for default dates
+  useEffect(() => {
+    const defaultFrom = new Date();
+    defaultFrom.setDate(defaultFrom.getDate() - 30);
+    setDateFrom(format(defaultFrom, 'yyyy-MM-dd'));
+    setDateTo(format(new Date(), 'yyyy-MM-dd'));
+  }, []);
 
   const transactionsQuery = useMemoFirebase(() => 
     user ? query(collection(db, 'users', user.uid, 'transactions'), orderBy('createdAt', 'desc')) : null
