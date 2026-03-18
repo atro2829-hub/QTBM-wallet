@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { ArrowLeft, Wallet, Copy, Info, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -30,7 +30,7 @@ const DEPOSIT_INFO = {
   ],
 };
 
-export default function DepositPage() {
+function DepositContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user } = useUser();
@@ -63,7 +63,6 @@ export default function DepositPage() {
 
     setIsLoading(true);
     try {
-      // Create Deposit Request in global collection for admin to see
       await addDoc(collection(db, 'depositRequests'), {
         userId: user.uid,
         amount: amount,
@@ -74,7 +73,6 @@ export default function DepositPage() {
         submissionDate: serverTimestamp(),
       });
 
-      // Also record in user's transactions
       await addDoc(collection(db, 'users', user.uid, 'transactions'), {
         initiatorUserId: user.uid,
         type: 'deposit',
@@ -100,31 +98,31 @@ export default function DepositPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background flex flex-col max-w-md mx-auto relative border-x pb-20">
+    <div className="min-h-screen bg-background flex flex-col max-w-md mx-auto relative border-x pb-20" dir="rtl">
       <header className="p-4 flex items-center gap-4 sticky top-0 bg-background/80 backdrop-blur-md z-10 border-b">
         <Button variant="ghost" size="icon" onClick={() => router.back()} className="rounded-full">
-          <ArrowLeft className="h-6 w-6" />
+          <ArrowLeft className="h-6 w-6 rotate-180" />
         </Button>
-        <h1 className="text-xl font-bold">Deposit Funds / إيداع</h1>
+        <h1 className="text-xl font-bold">إيداع رصيد / Deposit</h1>
       </header>
 
       <main className="p-6 flex-1 overflow-y-auto space-y-6">
-        <Card className="shadow-lg border-none bg-primary text-white overflow-hidden relative">
-          <CardHeader>
-            <CardTitle className="text-lg flex items-center gap-2">
+        <Card className="shadow-lg border-none bg-primary text-white overflow-hidden relative rounded-[2rem]">
+          <CardHeader className="text-right">
+            <CardTitle className="text-lg flex items-center gap-2 justify-end">
+              تعليمات الإيداع
               <Wallet className="h-5 w-5" />
-              Deposit Instructions
             </CardTitle>
-            <CardDescription className="text-white/70">Please send funds to the accounts below.</CardDescription>
+            <CardDescription className="text-white/70">يرجى تحويل المبلغ لأحد الحسابات التالية:</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label className="text-white/80">Selected Currency</Label>
+            <div className="space-y-2 text-right">
+              <Label className="text-white/80">العملة المختارة</Label>
               <Select 
                 value={formData.currency} 
                 onValueChange={(val) => setFormData({...formData, currency: val})}
               >
-                <SelectTrigger className="bg-white/10 border-white/20 text-white">
+                <SelectTrigger className="bg-white/10 border-white/20 text-white rounded-xl">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -137,10 +135,10 @@ export default function DepositPage() {
             
             <div className="space-y-3">
               {DEPOSIT_INFO[formData.currency as keyof typeof DEPOSIT_INFO]?.map((info, idx) => (
-                <div key={idx} className="bg-white/10 rounded-xl p-4 space-y-2 border border-white/20">
+                <div key={idx} className="bg-white/10 rounded-xl p-4 space-y-2 border border-white/20 text-right">
                   <p className="text-[10px] uppercase font-bold text-white/60 tracking-wider">{info.label}</p>
-                  <div className="flex items-center justify-between gap-2">
-                    <code className="text-xs break-all leading-tight font-mono">{info.value}</code>
+                  <div className="flex items-center justify-between gap-2 flex-row-reverse">
+                    <code className="text-xs break-all leading-tight font-mono text-left w-full">{info.value}</code>
                     <Button size="icon" variant="ghost" onClick={() => copyToClipboard(info.value)} className="shrink-0 text-white hover:bg-white/20">
                       <Copy className="h-4 w-4" />
                     </Button>
@@ -151,19 +149,20 @@ export default function DepositPage() {
           </CardContent>
         </Card>
 
-        <Card className="shadow-lg border-none">
+        <Card className="shadow-lg border-none rounded-[2rem] text-right">
           <CardHeader>
-            <CardTitle className="text-lg">Transaction Details</CardTitle>
-            <CardDescription>Enter the amount and proof of transfer.</CardDescription>
+            <CardTitle className="text-lg">تفاصيل المعاملة</CardTitle>
+            <CardDescription>أدخل المبلغ ورمز الإشعار للتأكيد.</CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="space-y-2">
-                <Label htmlFor="amount">Amount Sent</Label>
+                <Label htmlFor="amount">المبلغ المحول</Label>
                 <Input 
                   id="amount" 
                   type="number" 
                   placeholder="0.00" 
+                  className="text-right h-12 rounded-xl"
                   value={formData.amount}
                   onChange={(e) => setFormData({...formData, amount: e.target.value})}
                   required 
@@ -171,23 +170,32 @@ export default function DepositPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="txDetails">Transaction ID / Notice Number</Label>
+                <Label htmlFor="txDetails">رقم المعاملة / رقم الإشعار</Label>
                 <Input 
                   id="txDetails" 
-                  placeholder="Paste transaction ID or notice number" 
+                  placeholder="الصق رقم العملية هنا" 
+                  className="text-right h-12 rounded-xl"
                   value={formData.txDetails}
                   onChange={(e) => setFormData({...formData, txDetails: e.target.value})}
                   required 
                 />
               </div>
 
-              <Button type="submit" className="w-full h-12 text-md font-bold" disabled={isLoading}>
-                {isLoading ? <Loader2 className="animate-spin h-5 w-5" /> : "Submit Request"}
+              <Button type="submit" className="w-full h-14 rounded-2xl text-lg font-black" disabled={isLoading}>
+                {isLoading ? <Loader2 className="animate-spin h-5 w-5" /> : "إرسال طلب التأكيد"}
               </Button>
             </form>
           </CardContent>
         </Card>
       </main>
     </div>
+  );
+}
+
+export default function DepositPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-background"><Loader2 className="animate-spin h-10 w-10 text-primary" /></div>}>
+      <DepositContent />
+    </Suspense>
   );
 }

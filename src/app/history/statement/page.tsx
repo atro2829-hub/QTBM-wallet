@@ -1,12 +1,11 @@
 
 "use client";
 
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { 
   ArrowRight, 
   Printer, 
-  Download, 
   Wallet, 
   Clock, 
   User, 
@@ -23,7 +22,7 @@ import { format, isWithinInterval, parseISO, startOfDay, endOfDay } from 'date-f
 import { AppLogo } from '@/components/layout/AppLogo';
 import { Badge } from '@/components/ui/badge';
 
-export default function AccountStatementPage() {
+function AccountStatementContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user } = useUser();
@@ -42,7 +41,6 @@ export default function AccountStatementPage() {
 
   const { data: allTransactions, isLoading } = useCollection(transactionsQuery);
 
-  // تصفية المعاملات بناءً على النطاق الزمني
   const transactions = allTransactions?.filter(tx => {
     if (!tx.createdAt?.seconds || !dateFrom || !dateTo) return true;
     const txDate = new Date(tx.createdAt.seconds * 1000);
@@ -57,7 +55,6 @@ export default function AccountStatementPage() {
   });
 
   const handlePrint = () => {
-    // نستخدم setTimeout لضمان اكتمال رندر الصفحة قبل فتح نافذة الطباعة
     setTimeout(() => {
       window.print();
     }, 500);
@@ -74,7 +71,6 @@ export default function AccountStatementPage() {
 
   return (
     <div className="min-h-screen bg-slate-100 text-slate-900 selection:bg-primary/10" dir="rtl">
-      {/* شريط الأدوات - يختفي عند الطباعة */}
       <div className="print:hidden p-4 flex items-center justify-between border-b bg-white/90 backdrop-blur-xl sticky top-0 z-50 shadow-md">
         <div className="flex gap-4 items-center">
            <Button variant="ghost" size="icon" onClick={() => router.back()} className="rounded-full">
@@ -93,10 +89,7 @@ export default function AccountStatementPage() {
         </div>
       </div>
 
-      {/* محتوى الكشف */}
       <main ref={printRef} className="max-w-4xl mx-auto p-8 md:p-12 space-y-10 print:p-0 bg-white shadow-2xl my-10 print:my-0 print:shadow-none min-h-[1123px] transition-all">
-        
-        {/* الترويسة الرسمية */}
         <div className="flex justify-between items-start border-b-4 border-primary pb-10">
           <div className="space-y-6">
             <div className="flex items-center gap-4">
@@ -122,7 +115,6 @@ export default function AccountStatementPage() {
           </div>
         </div>
 
-        {/* ملخص المستخدم والمحفظة */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="md:col-span-2 bg-slate-50 p-6 rounded-3xl border border-slate-100 flex gap-6">
             <div className="space-y-4 flex-1">
@@ -158,7 +150,6 @@ export default function AccountStatementPage() {
           </div>
         </div>
 
-        {/* جدول المعاملات التفصيلي */}
         <div className="space-y-4">
            <h3 className="text-lg font-black flex items-center gap-2 px-2">
               <Clock className="h-5 w-5 text-primary" />
@@ -217,7 +208,6 @@ export default function AccountStatementPage() {
            </div>
         </div>
 
-        {/* قسم التوقيع والتحقق القانوني */}
         <div className="mt-auto pt-20 grid grid-cols-2 gap-12 items-end">
            <div className="space-y-6">
               <div className="p-6 bg-slate-50 rounded-3xl border border-slate-100 space-y-3">
@@ -246,36 +236,22 @@ export default function AccountStatementPage() {
 
       <style jsx global>{`
         @media print {
-          @page {
-            size: A4;
-            margin: 0;
-          }
-          body {
-            background: white !important;
-            margin: 0 !important;
-            padding: 0 !important;
-            -webkit-print-color-adjust: exact;
-          }
-          .print-hide {
-            display: none !important;
-          }
-          main {
-            margin: 0 !important;
-            padding: 20mm !important;
-            box-shadow: none !important;
-            width: 100% !important;
-            max-width: none !important;
-            min-height: auto !important;
-          }
+          @page { size: A4; margin: 0; }
+          body { background: white !important; margin: 0 !important; padding: 0 !important; -webkit-print-color-adjust: exact; }
+          .print-hide { display: none !important; }
+          main { margin: 0 !important; padding: 20mm !important; box-shadow: none !important; width: 100% !important; max-width: none !important; min-height: auto !important; }
         }
-        @keyframes spin-slow {
-          from { transform: rotate(0deg); }
-          to { transform: rotate(360deg); }
-        }
-        .animate-spin-slow {
-          animation: spin-slow 15s linear infinite;
-        }
+        @keyframes spin-slow { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        .animate-spin-slow { animation: spin-slow 15s linear infinite; }
       `}</style>
     </div>
+  );
+}
+
+export default function AccountStatementPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-background"><Loader2 className="animate-spin h-10 w-10 text-primary" /></div>}>
+      <AccountStatementContent />
+    </Suspense>
   );
 }

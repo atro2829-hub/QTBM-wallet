@@ -1,29 +1,17 @@
 
-"use client";
-
-import { useEffect } from 'react';
-import { useRouter, useParams } from 'next/navigation';
-import { Loader2 } from 'lucide-react';
-
 /**
- * Dummy page to avoid build errors during static export.
- * Redirects to the search-param based detail page.
+ * تم تعديل هذا الملف لإصلاح خطأ التصدير للأندرويد (Static Export).
+ * لا يمكن استخدام "use client" مع "generateStaticParams" في نفس الملف.
+ * بما أن التطبيق يستخدم الآن /history/detail?id=... لعرض التفاصيل، 
+ * فإن هذا الملف يعمل فقط كجسر تقني لضمان نجاح عملية البناء.
  */
+
+export async function generateStaticParams() {
+  // نرجع مصفوفة فارغة لتعطيل توليد الصفحات الديناميكية أثناء البناء، 
+  // مما يسمح لـ Next.js بإتمام التصدير الثابت بنجاح.
+  return [];
+}
+
 export default function TransactionRedirectPage() {
-  const router = useRouter();
-  const params = useParams();
-
-  useEffect(() => {
-    if (params?.id) {
-      router.replace(`/history/detail?id=${params.id}`);
-    } else {
-      router.replace('/history');
-    }
-  }, [params, router]);
-
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-background">
-      <Loader2 className="animate-spin h-10 w-10 text-primary" />
-    </div>
-  );
+  return null;
 }

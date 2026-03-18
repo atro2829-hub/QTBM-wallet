@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { ArrowLeft, Send, Search, Info, Loader2, ShieldCheck, UserCheck, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -11,10 +11,10 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
-import { doc, collection, addDoc, serverTimestamp, getDoc, increment } from 'firebase/firestore';
+import { doc, collection, serverTimestamp, getDoc, increment } from 'firebase/firestore';
 import { updateDocumentNonBlocking, addDocumentNonBlocking } from '@/firebase';
 
-export default function SendMoneyPage() {
+function SendMoneyContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user } = useUser();
@@ -103,21 +103,18 @@ export default function SendMoneyPage() {
 
     setIsLoading(true);
     try {
-      // 1. DEDUCT from sender's wallet
       const senderWalletRef = doc(db, 'users', user.uid, 'wallet', 'wallet');
       updateDocumentNonBlocking(senderWalletRef, {
         [currencyField]: increment(-amount),
         updatedAt: serverTimestamp()
       });
 
-      // 2. ADD to receiver's wallet
       const receiverWalletRef = doc(db, 'users', formData.recipientUid, 'wallet', 'wallet');
       updateDocumentNonBlocking(receiverWalletRef, {
         [currencyField]: increment(amount),
         updatedAt: serverTimestamp()
       });
 
-      // 3. Record in SENDER'S history
       addDocumentNonBlocking(collection(db, 'users', user.uid, 'transactions'), {
         initiatorUserId: user.uid,
         type: 'send',
@@ -130,7 +127,6 @@ export default function SendMoneyPage() {
         createdAt: serverTimestamp(),
       });
 
-      // 4. Record in RECEIVER'S history
       addDocumentNonBlocking(collection(db, 'users', formData.recipientUid, 'transactions'), {
         initiatorUserId: user.uid,
         type: 'receive',
@@ -247,5 +243,13 @@ export default function SendMoneyPage() {
         </Card>
       </main>
     </div>
+  );
+}
+
+export default function SendMoneyPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-background"><Loader2 className="animate-spin h-10 w-10 text-primary" /></div>}>
+      <SendMoneyContent />
+    </Suspense>
   );
 }
