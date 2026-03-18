@@ -3,52 +3,44 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    /**
-     * QTBM WALLET SECURITY RULES - UPDATED FOR INSTANT TRANSFERS & SYSTEM TASKS
-     */
-
-    function isSignedIn() {
-      return request.auth != null;
-    }
-
-    function isAdmin() {
-      return isSignedIn() && exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
-    }
-
-    function isOwner(userId) {
-      return isSignedIn() && request.auth.uid == userId;
-    }
+    function isSignedIn() { return request.auth != null; }
+    function isAdmin() { return isSignedIn() && exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid)); }
+    function isOwner(userId) { return isSignedIn() && request.auth.uid == userId; }
 
     match /users/{userId} {
       allow get: if isOwner(userId) || isAdmin();
       allow list: if isAdmin();
       allow create: if isOwner(userId);
-      allow update: if isOwner(userId) && (
-        !('fullName' in resource.data) || request.resource.data.fullName == resource.data.fullName
-      );
-      allow delete: if isAdmin();
+      allow update: if isOwner(userId) || isAdmin();
     }
 
     match /users/{userId}/wallet/{walletDoc} {
       allow get, list: if isOwner(userId) || isAdmin();
-      allow create: if isOwner(userId);
-      // السماح بالتحديث للحوالات الفورية بين المستخدمين
       allow update: if isSignedIn(); 
-      allow delete: if isAdmin();
+      allow create: if isOwner(userId);
     }
 
     match /users/{userId}/transactions/{transactionId} {
       allow get, list: if isOwner(userId) || isAdmin();
       allow create: if isOwner(userId) || isSignedIn(); 
-      allow update, delete: if isAdmin();
+    }
+
+    match /users/{userId}/investments/{investmentId} {
+      allow get, list: if isOwner(userId) || isAdmin();
+      allow create: if isOwner(userId);
+      allow update: if isAdmin();
+    }
+
+    match /investment_plans/{planId} {
+      allow get, list: if isSignedIn();
+      allow create, update, delete: if isAdmin();
     }
 
     match /depositRequests/{depositRequestId} {
       allow get: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
       allow list: if isAdmin() || isSignedIn(); 
       allow create: if isSignedIn();
-      allow update: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid && resource.data.status == 'pending');
-      allow delete: if isAdmin();
+      allow update: if isAdmin();
     }
 
     match /withdrawRequests/{requestId} {
@@ -56,11 +48,6 @@ service cloud.firestore {
       allow list: if isAdmin();
       allow create: if isSignedIn();
       allow update: if isAdmin();
-      allow delete: if isAdmin();
-    }
-
-    match /system_tasks/{taskId} {
-      allow get, list, write: if isAdmin();
     }
 
     match /products/{productId} {
@@ -72,25 +59,11 @@ service cloud.firestore {
       allow get: if isSignedIn() && (isOwner(adminId) || isAdmin());
       allow list: if isAdmin();
       allow create: if isOwner(adminId);
-      allow update, delete: if isAdmin();
     }
 
     match /system/{document=**} {
       allow get, list: if true;
       allow write: if isAdmin();
-    }
-
-    match /support_chats/{chatId} {
-      allow get, list: if isAdmin() || isOwner(chatId);
-      allow create: if isOwner(chatId);
-      allow update: if isAdmin() || isOwner(chatId);
-      allow delete: if isAdmin();
-    }
-
-    match /support_chats/{chatId}/messages/{messageId} {
-      allow get, list: if isAdmin() || isOwner(chatId);
-      allow create: if isAdmin() || isOwner(chatId);
-      allow update, delete: if isAdmin();
     }
   }
 }

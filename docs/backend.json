@@ -28,28 +28,30 @@
         "sarBalance": { "type": "number" }
       }
     },
-    "Product": {
-      "title": "Product",
+    "InvestmentPlan": {
+      "title": "InvestmentPlan",
       "type": "object",
       "properties": {
         "name": { "type": "string" },
-        "category": { "type": "string" },
-        "price": { "type": "number" },
-        "currency": { "type": "string" },
-        "iconName": { "type": "string" },
-        "imageUrl": { "type": "string" },
+        "minAmount": { "type": "number" },
+        "durationDays": { "type": "number" },
+        "interestRate": { "type": "number" },
+        "description": { "type": "string" },
         "isActive": { "type": "boolean" }
       }
     },
-    "SystemConfig": {
-      "title": "SystemConfig",
+    "UserInvestment": {
+      "title": "UserInvestment",
       "type": "object",
       "properties": {
-        "contactPhone": { "type": "string" },
-        "contactEmail": { "type": "string" },
-        "usdToYerRate": { "type": "number" },
-        "usdToSarRate": { "type": "number" },
-        "usdtCommission": { "type": "number", "description": "Percentage commission for USDT purchase (e.g. 0.05 for 5%)" }
+        "userId": { "type": "string" },
+        "planId": { "type": "string" },
+        "amount": { "type": "number" },
+        "currency": { "type": "string" },
+        "startDate": { "type": "string", "format": "date-time" },
+        "endDate": { "type": "string", "format": "date-time" },
+        "expectedReturn": { "type": "number" },
+        "status": { "type": "string", "enum": ["active", "completed"] }
       }
     }
   },
@@ -65,13 +67,13 @@
       "schema": { "$ref": "#/backend/entities/Wallet" },
       "description": "User balances."
     },
-    "/products/{productId}": {
-      "schema": { "$ref": "#/backend/entities/Product" },
-      "description": "System products."
+    "/investment_plans/{planId}": {
+      "schema": { "$ref": "#/backend/entities/InvestmentPlan" },
+      "description": "Available investment plans."
     },
-    "/system/config": {
-      "schema": { "$ref": "#/backend/entities/SystemConfig" },
-      "description": "Global system configuration and rates."
+    "/users/{userId}/investments/{investmentId}": {
+      "schema": { "$ref": "#/backend/entities/UserInvestment" },
+      "description": "User active and past investments."
     }
   }
 }
