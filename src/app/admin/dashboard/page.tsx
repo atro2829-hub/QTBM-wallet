@@ -30,7 +30,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
-import { collection, doc, updateDoc, deleteDoc, addDoc, serverTimestamp, query, where, orderBy, setDoc } from 'firebase/firestore';
+import { collection, doc, updateDoc, deleteDoc, addDoc, serverTimestamp, query, where, orderBy, setDoc, increment } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
 import { AppLogo } from '@/components/layout/AppLogo';
@@ -83,16 +83,38 @@ export default function AdminDashboard() {
     toast({ title: "تم التحديث", description: "تم حفظ إعدادات النظام بنجاح." });
   };
 
-  const handleApproveDeposit = (requestId: string) => {
-    const requestRef = doc(db, 'depositRequests', requestId);
+  const handleApproveDeposit = (req: any) => {
+    const requestRef = doc(db, 'depositRequests', req.id);
+    const walletRef = doc(db, 'users', req.userId, 'wallet', 'wallet');
+    const currencyField = `${req.currency.toLowerCase()}Balance`;
+
+    // 1. Approve Request
     updateDocumentNonBlocking(requestRef, { status: 'approved', processedAt: serverTimestamp() });
-    toast({ title: "تمت الموافقة", description: "تم تأكيد طلب الإيداع." });
+    
+    // 2. Update User Balance
+    updateDocumentNonBlocking(walletRef, {
+      [currencyField]: increment(req.amount),
+      updatedAt: serverTimestamp()
+    });
+
+    toast({ title: "تمت الموافقة", description: `تمت إضافة ${req.amount} ${req.currency} إلى رصيد المستخدم.` });
   };
 
-  const handleApproveWithdraw = (requestId: string) => {
-    const requestRef = doc(db, 'withdrawRequests', requestId);
+  const handleApproveWithdraw = (req: any) => {
+    const requestRef = doc(db, 'withdrawRequests', req.id);
+    const walletRef = doc(db, 'users', req.userId, 'wallet', 'wallet');
+    const currencyField = `${req.currency.toLowerCase()}Balance`;
+
+    // 1. Approve Request
     updateDocumentNonBlocking(requestRef, { status: 'approved', processedAt: serverTimestamp() });
-    toast({ title: "تمت الموافقة", description: "تم تأكيد طلب السحب." });
+    
+    // 2. Update User Balance (Subtract)
+    updateDocumentNonBlocking(walletRef, {
+      [currencyField]: increment(-req.amount),
+      updatedAt: serverTimestamp()
+    });
+
+    toast({ title: "تم تنفيذ السحب", description: `تم خصم ${req.amount} ${req.currency} من رصيد المستخدم.` });
   };
 
   const handleAddProduct = async () => {
@@ -173,7 +195,7 @@ export default function AdminDashboard() {
                     <table className="w-full text-right">
                       <thead className="bg-muted text-[10px] font-black uppercase tracking-widest text-muted-foreground">
                         <tr>
-                          <th className="px-8 py-4">المستخدم</th>
+                          <th className="px-8 py-4">المستخدم (UID)</th>
                           <th className="px-8 py-4">المبلغ</th>
                           <th className="px-8 py-4">العملة</th>
                           <th className="px-8 py-4">الإجراء</th>
@@ -182,11 +204,11 @@ export default function AdminDashboard() {
                       <tbody className="divide-y">
                         {pendingDeposits?.map((req) => (
                           <tr key={req.id} className="hover:bg-accent/30 transition-colors font-bold">
-                            <td className="px-8 py-6">{req.userId}</td>
+                            <td className="px-8 py-6 text-xs font-mono">{req.userId}</td>
                             <td className="px-8 py-6 text-lg">{req.amount}</td>
                             <td className="px-8 py-6">{req.currency}</td>
                             <td className="px-8 py-6">
-                              <Button size="sm" className="rounded-xl bg-green-500 font-black" onClick={() => handleApproveDeposit(req.id)}>موافقة</Button>
+                              <Button size="sm" className="rounded-xl bg-green-500 font-black" onClick={() => handleApproveDeposit(req)}>موافقة</Button>
                             </td>
                           </tr>
                         ))}
@@ -215,12 +237,12 @@ export default function AdminDashboard() {
                       <tbody className="divide-y">
                         {pendingWithdraws?.map((req) => (
                           <tr key={req.id} className="hover:bg-accent/30 transition-colors font-bold">
-                            <td className="px-8 py-6">{req.userId}</td>
+                            <td className="px-8 py-6 text-xs font-mono">{req.userId}</td>
                             <td className="px-8 py-6 text-lg">{req.amount}</td>
                             <td className="px-8 py-6">{req.currency}</td>
                             <td className="px-8 py-6 text-xs">{req.details}</td>
                             <td className="px-8 py-6">
-                              <Button size="sm" className="rounded-xl bg-primary font-black" onClick={() => handleApproveWithdraw(req.id)}>تنفيذ</Button>
+                              <Button size="sm" className="rounded-xl bg-primary font-black" onClick={() => handleApproveWithdraw(req)}>تنفيذ</Button>
                             </td>
                           </tr>
                         ))}
@@ -228,6 +250,34 @@ export default function AdminDashboard() {
                     </table>
                   </CardContent>
                 </Card>
+              </TabsContent>
+
+              <TabsContent value="users" className="space-y-6">
+                 <Card className="rounded-[2.5rem] border-none shadow-2xl glass-morphism overflow-hidden">
+                    <CardHeader className="bg-primary/5 p-8 text-right">
+                      <CardTitle className="text-2xl font-black">قائمة المستخدمين</CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-0">
+                      <table className="w-full text-right">
+                        <thead className="bg-muted text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                          <tr>
+                            <th className="px-8 py-4">الاسم</th>
+                            <th className="px-8 py-4">رقم الهاتف</th>
+                            <th className="px-8 py-4">UID</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y">
+                          {allUsers?.map((user) => (
+                            <tr key={user.id} className="hover:bg-accent/30 transition-colors">
+                              <td className="px-8 py-6 font-bold">{user.fullName}</td>
+                              <td className="px-8 py-6">{user.phoneNumber}</td>
+                              <td className="px-8 py-6 font-mono text-xs">{user.id}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </CardContent>
+                 </Card>
               </TabsContent>
 
               <TabsContent value="products" className="space-y-6">
