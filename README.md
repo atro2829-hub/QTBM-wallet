@@ -5,30 +5,29 @@
 
 ## 🚀 دليل بناء وتصدير ملف APK النهائي
 
-بعد الانتهاء من البرمجة، اتبع هذه الخطوات في الـ **Terminal** للحصول على التطبيق:
+للحصول على ملف الـ APK، اتبع الخطوات التالية بالترتيب:
 
-### الخطوة 1: تجهيز الملفات (تجميع المشروع)
+### الخطوة 1: تجهيز ملفات المشروع
+يجب تشغيل هذا الأمر أولاً لتجميع كود الـ Next.js ومزامنتة مع مجلد الأندرويد:
 ```bash
-# بناء نسخة الويب الثابتة ومزامنتها مع مجلد الأندرويد
 npm run apk:prepare
 ```
 
-### الخطوة 2: إنشاء ملف APK (عبر Command Line)
-لإنشاء نسخة تجريبية (Debug APK) مباشرة:
+### الخطوة 2: حل مشكلة SDK (في حال ظهور خطأ SDK Location not found)
+إذا ظهر لك خطأ يطلب تحديد مسار الـ SDK، تأكد من أن ملف `android/local.properties` يحتوي على المسار الصحيح للـ Android SDK على جهازك. 
+*   **في أنظمة Linux/Cloud:** عادة ما يكون `/home/user/Android/Sdk`.
+*   **في أنظمة Windows:** عادة ما يكون `C:/Users/اسم_المستخدم/AppData/Local/Android/Sdk` (استخدم السلاش الأمامي `/`).
+
+### الخطوة 3: بناء ملف الـ APK
+لإنشاء نسخة تجريبية (Debug APK) مباشرة عبر الـ Terminal:
 ```bash
-# للأنظمة الشبيهة بـ Linux/Mac
+# لأنظمة Mac/Linux
 cd android && ./gradlew assembleDebug
 
-# لأنظمة Windows (PowerShell)
+# لأنظمة Windows
 cd android; .\gradlew assembleDebug
 ```
 *ستجد ملف الـ APK الناتج في المجلد: `android/app/build/outputs/apk/debug/app-debug.apk`*
-
-### الخطوة 3: (اختياري) عبر Android Studio
-إذا كنت تفضل استخدام الواجهة الرسومية:
-1. افتح **Android Studio**.
-2. اختر **Open Project** وحدد مجلد `android` الموجود في هذا المشروع.
-3. من القائمة العلوية اختر: **Build** > **Build Bundle(s) / APK(s)** > **Build APK(s)**.
 
 ---
 تم التطوير بواسطة **فريق QTBM الرقمي**.
