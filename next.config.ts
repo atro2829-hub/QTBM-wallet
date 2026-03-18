@@ -1,7 +1,8 @@
+
 import type {NextConfig} from 'next';
 
 const nextConfig: NextConfig = {
-  /* تفعيل التصدير الثابت لتحويل المشروع إلى تطبيق أندرويد */
+  /* تفعيل التصدير الثابت لتحويل المشروع إلى تطبيق أندرويد عبر Capacitor */
   output: 'export',
   typescript: {
     ignoreBuildErrors: true,
@@ -10,7 +11,7 @@ const nextConfig: NextConfig = {
     ignoreDuringBuilds: true,
   },
   images: {
-    unoptimized: true, // ضروري للتصدير الثابت (Static Export)
+    unoptimized: true, // ضروري جداً للتصدير الثابت (Static Export) ليعمل داخل الأندرويد
     remotePatterns: [
       {
         protocol: 'https',
