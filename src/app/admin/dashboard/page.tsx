@@ -20,7 +20,8 @@ import {
   MoreVertical,
   ArrowRightLeft,
   Layers,
-  Banknote
+  Banknote,
+  Send
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -58,7 +59,7 @@ export default function AdminDashboard() {
   const [editingConfig, setEditingConfig] = useState({ phone: '', email: '' });
 
   const productsQuery = useMemoFirebase(() => collection(db, 'products'), [db]);
-  const { data: products, isLoading: productsLoading } = useCollection(productsQuery);
+  const { data: products } = useCollection(productsQuery);
 
   const pendingDepositsQuery = useMemoFirebase(() => 
     query(collection(db, 'depositRequests'), where('status', '==', 'pending')), 
@@ -69,6 +70,12 @@ export default function AdminDashboard() {
     query(collection(db, 'withdrawRequests'), where('status', '==', 'pending')), 
   [db]);
   const { data: pendingWithdraws } = useCollection(pendingWithdrawsQuery);
+
+  // Updated query to handle user-to-user transfers specifically
+  const transfersQuery = useMemoFirebase(() => 
+    query(collection(db, 'system_tasks'), where('type', '==', 'transfer'), where('status', '==', 'pending')),
+  [db]);
+  const { data: pendingTransfers } = useCollection(transfersQuery);
 
   const usersQuery = useMemoFirebase(() => collection(db, 'users'), [db]);
   const { data: allUsers } = useCollection(usersQuery);
@@ -88,10 +95,7 @@ export default function AdminDashboard() {
     const walletRef = doc(db, 'users', req.userId, 'wallet', 'wallet');
     const currencyField = `${req.currency.toLowerCase()}Balance`;
 
-    // 1. Approve Request
     updateDocumentNonBlocking(requestRef, { status: 'approved', processedAt: serverTimestamp() });
-    
-    // 2. Update User Balance
     updateDocumentNonBlocking(walletRef, {
       [currencyField]: increment(req.amount),
       updatedAt: serverTimestamp()
@@ -105,16 +109,37 @@ export default function AdminDashboard() {
     const walletRef = doc(db, 'users', req.userId, 'wallet', 'wallet');
     const currencyField = `${req.currency.toLowerCase()}Balance`;
 
-    // 1. Approve Request
     updateDocumentNonBlocking(requestRef, { status: 'approved', processedAt: serverTimestamp() });
-    
-    // 2. Update User Balance (Subtract)
     updateDocumentNonBlocking(walletRef, {
       [currencyField]: increment(-req.amount),
       updatedAt: serverTimestamp()
     });
 
     toast({ title: "تم تنفيذ السحب", description: `تم خصم ${req.amount} ${req.currency} من رصيد المستخدم.` });
+  };
+
+  const handleApproveTransfer = (task: any) => {
+    const taskRef = doc(db, 'system_tasks', task.id);
+    const senderWalletRef = doc(db, 'users', task.senderUid, 'wallet', 'wallet');
+    const receiverWalletRef = doc(db, 'users', task.receiverUid, 'wallet', 'wallet');
+    const currencyField = `${task.currency.toLowerCase()}Balance`;
+
+    // 1. Mark task as completed
+    updateDocumentNonBlocking(taskRef, { status: 'completed', processedAt: serverTimestamp() });
+
+    // 2. Deduct from sender (already checked for enough balance at request time)
+    updateDocumentNonBlocking(senderWalletRef, {
+      [currencyField]: increment(-task.amount),
+      updatedAt: serverTimestamp()
+    });
+
+    // 3. Add to receiver
+    updateDocumentNonBlocking(receiverWalletRef, {
+      [currencyField]: increment(task.amount),
+      updatedAt: serverTimestamp()
+    });
+
+    toast({ title: "تم التحويل", description: "تمت معالجة الحوالة بنجاح بين الطرفين بالعملة المختارة." });
   };
 
   const handleAddProduct = async () => {
@@ -153,6 +178,12 @@ export default function AdminDashboard() {
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
+                <SidebarMenuButton isActive={activeTab === 'transfers'} onClick={() => setActiveTab('transfers')} className="h-12 rounded-xl font-black">
+                  <Send className="h-5 w-5 ml-2" />
+                  <span>حوالات المستخدمين</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
                 <SidebarMenuButton isActive={activeTab === 'users'} onClick={() => setActiveTab('users')} className="h-12 rounded-xl font-black">
                   <Users className="h-5 w-5 ml-2" />
                   <span>المستخدمين</span>
@@ -161,7 +192,7 @@ export default function AdminDashboard() {
               <SidebarMenuItem>
                 <SidebarMenuButton isActive={activeTab === 'products'} onClick={() => setActiveTab('products')} className="h-12 rounded-xl font-black">
                   <Layers className="h-5 w-5 ml-2" />
-                  <span>الفئات والخدمات</span>
+                  <span>الخدمات</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
@@ -189,13 +220,13 @@ export default function AdminDashboard() {
               <TabsContent value="approvals" className="space-y-6">
                 <Card className="rounded-[2.5rem] border-none shadow-2xl glass-morphism overflow-hidden">
                   <CardHeader className="bg-primary/5 p-8 text-right">
-                    <CardTitle className="text-2xl font-black">طلبات الإيداع المعلقة</CardTitle>
+                    <CardTitle className="text-2xl font-black">طلبات الإيداع</CardTitle>
                   </CardHeader>
                   <CardContent className="p-0">
                     <table className="w-full text-right">
                       <thead className="bg-muted text-[10px] font-black uppercase tracking-widest text-muted-foreground">
                         <tr>
-                          <th className="px-8 py-4">المستخدم (UID)</th>
+                          <th className="px-8 py-4">UID</th>
                           <th className="px-8 py-4">المبلغ</th>
                           <th className="px-8 py-4">العملة</th>
                           <th className="px-8 py-4">الإجراء</th>
@@ -218,19 +249,52 @@ export default function AdminDashboard() {
                 </Card>
               </TabsContent>
 
-              <TabsContent value="withdraws" className="space-y-6">
+              <TabsContent value="transfers" className="space-y-6">
                 <Card className="rounded-[2.5rem] border-none shadow-2xl glass-morphism overflow-hidden">
                   <CardHeader className="bg-primary/5 p-8 text-right">
-                    <CardTitle className="text-2xl font-black">طلبات السحب المعلقة</CardTitle>
+                    <CardTitle className="text-2xl font-black">تحويلات معلقة (بين المحافظ)</CardTitle>
                   </CardHeader>
                   <CardContent className="p-0">
                     <table className="w-full text-right">
                       <thead className="bg-muted text-[10px] font-black uppercase tracking-widest text-muted-foreground">
                         <tr>
-                          <th className="px-8 py-4">المستخدم</th>
+                          <th className="px-8 py-4">من (UID)</th>
+                          <th className="px-8 py-4">إلى (UID)</th>
+                          <th className="px-8 py-4">المبلغ</th>
+                          <th className="px-8 py-4">العملة المختارة</th>
+                          <th className="px-8 py-4">الإجراء</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y">
+                        {pendingTransfers?.map((task) => (
+                          <tr key={task.id} className="hover:bg-accent/30 transition-colors font-bold">
+                            <td className="px-8 py-6 text-xs font-mono">{task.senderUid}</td>
+                            <td className="px-8 py-6 text-xs font-mono">{task.receiverUid}</td>
+                            <td className="px-8 py-6 text-lg">{task.amount}</td>
+                            <td className="px-8 py-6"><Badge variant="outline">{task.currency}</Badge></td>
+                            <td className="px-8 py-6">
+                              <Button size="sm" className="rounded-xl bg-primary font-black" onClick={() => handleApproveTransfer(task)}>موافقة وتنفيذ</Button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              <TabsContent value="withdraws" className="space-y-6">
+                <Card className="rounded-[2.5rem] border-none shadow-2xl glass-morphism overflow-hidden">
+                  <CardHeader className="bg-primary/5 p-8 text-right">
+                    <CardTitle className="text-2xl font-black">طلبات السحب</CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-0">
+                    <table className="w-full text-right">
+                      <thead className="bg-muted text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                        <tr>
+                          <th className="px-8 py-4">UID</th>
                           <th className="px-8 py-4">المبلغ</th>
                           <th className="px-8 py-4">العملة</th>
-                          <th className="px-8 py-4">التفاصيل</th>
                           <th className="px-8 py-4">الإجراء</th>
                         </tr>
                       </thead>
@@ -240,7 +304,6 @@ export default function AdminDashboard() {
                             <td className="px-8 py-6 text-xs font-mono">{req.userId}</td>
                             <td className="px-8 py-6 text-lg">{req.amount}</td>
                             <td className="px-8 py-6">{req.currency}</td>
-                            <td className="px-8 py-6 text-xs">{req.details}</td>
                             <td className="px-8 py-6">
                               <Button size="sm" className="rounded-xl bg-primary font-black" onClick={() => handleApproveWithdraw(req)}>تنفيذ</Button>
                             </td>
@@ -255,7 +318,7 @@ export default function AdminDashboard() {
               <TabsContent value="users" className="space-y-6">
                  <Card className="rounded-[2.5rem] border-none shadow-2xl glass-morphism overflow-hidden">
                     <CardHeader className="bg-primary/5 p-8 text-right">
-                      <CardTitle className="text-2xl font-black">قائمة المستخدمين</CardTitle>
+                      <CardTitle className="text-2xl font-black">المستخدمين</CardTitle>
                     </CardHeader>
                     <CardContent className="p-0">
                       <table className="w-full text-right">
@@ -282,103 +345,50 @@ export default function AdminDashboard() {
 
               <TabsContent value="products" className="space-y-6">
                 <div className="flex justify-between items-center">
-                  <h3 className="text-xl font-black">كتالوج الخدمات المنظم</h3>
+                  <h3 className="text-xl font-black">الخدمات</h3>
                   <Dialog open={isAddingProduct} onOpenChange={setIsAddingProduct}>
                     <DialogTrigger asChild>
-                      <Button className="rounded-2xl gap-2 font-black shadow-lg">
-                        <PlusCircle className="h-5 w-5" />
-                        إضافة خدمة جديدة
-                      </Button>
+                      <Button className="rounded-2xl gap-2 font-black">إضافة خدمة</Button>
                     </DialogTrigger>
-                    <DialogContent dir="rtl" className="rounded-[2rem]">
-                      <DialogHeader>
-                        <DialogTitle className="font-black text-xl text-right">إضافة منتج/لعبة جديدة</DialogTitle>
-                      </DialogHeader>
+                    <DialogContent dir="rtl">
+                      <DialogHeader><DialogTitle>إضافة خدمة</DialogTitle></DialogHeader>
                       <div className="space-y-4 pt-4">
-                        <div className="space-y-2 text-right">
-                          <Label className="font-bold">اسم الفئة (مثلاً: PUBG Mobile)</Label>
-                          <Input 
-                            value={newProduct.category}
-                            onChange={(e) => setNewProduct({...newProduct, category: e.target.value})}
-                            className="rounded-xl h-12"
-                            placeholder="اسم اللعبة أو الخدمة الرئيسية"
-                          />
-                        </div>
-                        <div className="space-y-2 text-right">
-                          <Label className="font-bold">اسم المنتج الفرعي</Label>
-                          <Input 
-                            value={newProduct.name}
-                            onChange={(e) => setNewProduct({...newProduct, name: e.target.value})}
-                            className="rounded-xl h-12"
-                            placeholder="مثلاً: 600 UC"
-                          />
-                        </div>
-                        <div className="grid grid-cols-2 gap-4">
-                          <div className="space-y-2 text-right">
-                            <Label className="font-bold">السعر</Label>
-                            <Input 
-                              type="number"
-                              value={newProduct.price}
-                              onChange={(e) => setNewProduct({...newProduct, price: e.target.value})}
-                              className="rounded-xl h-12"
-                            />
-                          </div>
-                          <div className="space-y-2 text-right">
-                            <Label className="font-bold">العملة</Label>
-                            <Select value={newProduct.currency} onValueChange={(v) => setNewProduct({...newProduct, currency: v})}>
-                              <SelectTrigger className="rounded-xl h-12"><SelectValue /></SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="USD">USD</SelectItem>
-                                <SelectItem value="YER">YER</SelectItem>
-                                <SelectItem value="SAR">SAR</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
-                        </div>
+                        <Input value={newProduct.category} onChange={(e) => setNewProduct({...newProduct, category: e.target.value})} placeholder="الفئة" />
+                        <Input value={newProduct.name} onChange={(e) => setNewProduct({...newProduct, name: e.target.value})} placeholder="الاسم" />
+                        <Input type="number" value={newProduct.price} onChange={(e) => setNewProduct({...newProduct, price: e.target.value})} placeholder="السعر" />
+                        <Select value={newProduct.currency} onValueChange={(v) => setNewProduct({...newProduct, currency: v})}>
+                          <SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectContent><SelectItem value="USD">USD</SelectItem><SelectItem value="YER">YER</SelectItem><SelectItem value="SAR">SAR</SelectItem></SelectContent>
+                        </Select>
                       </div>
-                      <DialogFooter className="mt-6">
-                        <Button className="w-full h-14 rounded-2xl font-black" onClick={handleAddProduct}>حفظ في القائمة</Button>
-                      </DialogFooter>
+                      <DialogFooter><Button onClick={handleAddProduct}>حفظ</Button></DialogFooter>
                     </DialogContent>
                   </Dialog>
                 </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                   {products?.map((product) => (
-                     <Card key={product.id} className="rounded-3xl border-none shadow-lg glass-morphism overflow-hidden group">
-                        <CardContent className="p-6">
-                          <div className="flex justify-between items-start mb-4">
-                            <Badge variant="secondary" className="font-black text-[10px] uppercase">{product.category}</Badge>
-                            <Button size="icon" variant="ghost" className="text-red-500 hover:bg-red-50" onClick={() => deleteDocumentNonBlocking(doc(db, 'products', product.id))}>
-                              <Trash2 className="h-5 w-5" />
-                            </Button>
-                          </div>
-                          <h4 className="font-black text-lg mb-1">{product.name}</h4>
-                          <p className="text-2xl font-black text-primary tracking-tighter">{product.price} <span className="text-sm">{product.currency}</span></p>
-                        </CardContent>
-                     </Card>
-                   ))}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {products?.map((p) => (
+                    <Card key={p.id} className="rounded-2xl shadow-sm">
+                      <CardContent className="p-4 flex justify-between items-center">
+                        <div>
+                          <p className="font-bold text-xs opacity-50">{p.category}</p>
+                          <h4 className="font-black">{p.name}</h4>
+                          <p className="text-primary font-black">{p.price} {p.currency}</p>
+                        </div>
+                        <Button size="icon" variant="ghost" onClick={() => deleteDocumentNonBlocking(doc(db, 'products', p.id))}><Trash2 className="h-4 w-4" /></Button>
+                      </CardContent>
+                    </Card>
+                  ))}
                 </div>
               </TabsContent>
 
               <TabsContent value="system" className="space-y-6">
-                <Card className="rounded-[2.5rem] border-none shadow-2xl glass-morphism">
-                  <CardHeader className="bg-primary/5 p-8 text-right">
-                    <CardTitle className="text-2xl font-black">إعدادات المنصة</CardTitle>
-                  </CardHeader>
-                  <CardContent className="p-8 space-y-6 text-right">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div className="space-y-2">
-                        <Label className="font-bold">رقم هاتف التواصل</Label>
-                        <Input placeholder={config?.contactPhone || "775371829"} onChange={(e) => setEditingConfig({...editingConfig, phone: e.target.value})} className="h-12 rounded-xl" />
-                      </div>
-                      <div className="space-y-2">
-                        <Label className="font-bold">البريد الإلكتروني</Label>
-                        <Input placeholder={config?.contactEmail || "support@qtbm.com"} onChange={(e) => setEditingConfig({...editingConfig, email: e.target.value})} className="h-12 rounded-xl" />
-                      </div>
-                    </div>
-                    <Button className="w-full h-14 rounded-2xl font-black shadow-xl" onClick={handleUpdateConfig}>حفظ التغييرات</Button>
-                  </CardContent>
+                <Card className="rounded-[2.5rem] border-none shadow-2xl glass-morphism p-8 space-y-4">
+                  <CardTitle>الإعدادات</CardTitle>
+                  <div className="grid grid-cols-2 gap-4">
+                    <Input placeholder="رقم الهاتف" onChange={(e) => setEditingConfig({...editingConfig, phone: e.target.value})} />
+                    <Input placeholder="البريد" onChange={(e) => setEditingConfig({...editingConfig, email: e.target.value})} />
+                  </div>
+                  <Button className="w-full" onClick={handleUpdateConfig}>حفظ</Button>
                 </Card>
               </TabsContent>
 

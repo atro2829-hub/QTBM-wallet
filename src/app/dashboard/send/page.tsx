@@ -3,7 +3,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { ArrowLeft, Send, Search, Info, Loader2 } from 'lucide-react';
+import { ArrowLeft, Send, Search, Info, Loader2, ShieldCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -49,14 +49,14 @@ export default function SendMoneyPage() {
     const currentBalance = (wallet[currencyKey] as number) || 0;
     
     if (isNaN(amount) || amount <= 0) {
-      toast({ title: "Invalid Amount", variant: "destructive" });
+      toast({ title: "مبلغ غير صالح", variant: "destructive" });
       return;
     }
 
     if (currentBalance < amount) {
       toast({ 
-        title: "Insufficient Balance", 
-        description: `You don't have enough ${formData.currency} to complete this transfer.`, 
+        title: "رصيد غير كافٍ في هذه العملة", 
+        description: `رصيدك الحالي في ${formData.currency} هو ${currentBalance}. يرجى اختيار عملة أخرى أو شحن الرصيد.`, 
         variant: "destructive" 
       });
       return;
@@ -64,52 +64,64 @@ export default function SendMoneyPage() {
 
     setIsLoading(true);
     try {
-      // Record in user's transactions as Pending
+      // Create a system task for admin to process
+      await addDoc(collection(db, 'system_tasks'), {
+        type: 'transfer',
+        senderUid: user.uid,
+        receiverUid: formData.recipientUid,
+        amount: amount,
+        currency: formData.currency,
+        status: 'pending',
+        createdAt: serverTimestamp(),
+      });
+
+      // Record in user's history
       await addDoc(collection(db, 'users', user.uid, 'transactions'), {
         initiatorUserId: user.uid,
         type: 'send',
         amount: amount,
         currency: formData.currency,
-        description: `Transfer to ${formData.recipientUid}`,
+        description: `حوالة إلى ${formData.recipientUid}`,
         status: 'Pending',
-        recipientUserId: [formData.recipientUid],
         createdAt: serverTimestamp(),
       });
 
-      toast({ title: "Transfer Initiated", description: "Your transfer is pending administrator approval for security." });
+      toast({ title: "تم إرسال الطلب", description: "طلب التحويل معلق الآن للمراجعة الأمنية. سيتم خصم المبلغ فور الموافقة." });
       router.push('/dashboard');
     } catch (error: any) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({ title: "خطأ", description: error.message, variant: "destructive" });
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-background flex flex-col max-w-md mx-auto relative border-x">
-      <header className="p-4 flex items-center gap-4 sticky top-0 bg-background/80 backdrop-blur-md z-10 border-b">
+    <div className="min-h-screen mesh-background flex flex-col max-w-md mx-auto relative border-x" dir="rtl">
+      <header className="p-6 flex items-center justify-between sticky top-0 bg-background/50 backdrop-blur-md z-10 border-b">
+        <h1 className="text-xl font-black">إرسال رصيد</h1>
         <Button variant="ghost" size="icon" onClick={() => router.back()} className="rounded-full">
-          <ArrowLeft className="h-6 w-6" />
+          <ArrowLeft className="h-6 w-6 rotate-180" />
         </Button>
-        <h1 className="text-xl font-bold">Send Money</h1>
       </header>
 
-      <main className="p-6 flex-1 overflow-y-auto">
-        <Card className="shadow-lg border-none">
-          <CardHeader>
-            <CardTitle className="text-lg">Recipient Details</CardTitle>
-            <CardDescription>Enter the details for your secure transfer.</CardDescription>
+      <main className="p-6 space-y-6 flex-1 overflow-y-auto">
+        <Card className="rounded-[2.5rem] border-none shadow-xl glass-morphism overflow-hidden">
+          <CardHeader className="bg-primary/5">
+            <CardTitle className="text-lg flex items-center gap-2">
+               <ShieldCheck className="h-5 w-5 text-primary" />
+               تفاصيل الحوالة
+            </CardTitle>
+            <CardDescription className="font-bold">يرجى ملاحظة أن كل عملة مستقلة تماماً.</CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="pt-6 space-y-6">
             <form onSubmit={handleSubmit} className="space-y-6">
-              <div className="space-y-2">
-                <Label htmlFor="recipient">Recipient UID</Label>
+              <div className="space-y-2 text-right">
+                <Label className="font-bold">معرف المستلم (UID)</Label>
                 <div className="relative">
-                  <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  <Search className="absolute right-3 top-3 h-4 w-4 text-muted-foreground" />
                   <Input 
-                    id="recipient" 
-                    placeholder="e.g. USER-12345" 
-                    className="pl-10"
+                    placeholder="أدخل الـ UID للمستلم" 
+                    className="pr-10 h-12 rounded-2xl"
                     value={formData.recipientUid}
                     onChange={(e) => setFormData({...formData, recipientUid: e.target.value})}
                     required 
@@ -118,44 +130,40 @@ export default function SendMoneyPage() {
               </div>
 
               <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="amount">Amount</Label>
+                <div className="space-y-2 text-right">
+                  <Label className="font-bold">المبلغ</Label>
                   <Input 
-                    id="amount" 
                     type="number" 
                     placeholder="0.00" 
+                    className="h-12 rounded-2xl"
                     value={formData.amount}
                     onChange={(e) => setFormData({...formData, amount: e.target.value})}
                     required 
                   />
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="currency">Currency</Label>
-                  <Select 
-                    value={formData.currency} 
-                    onValueChange={(val) => setFormData({...formData, currency: val})}
-                  >
-                    <SelectTrigger id="currency">
-                      <SelectValue placeholder="Select" />
-                    </SelectTrigger>
+                <div className="space-y-2 text-right">
+                  <Label className="font-bold">العملة</Label>
+                  <Select value={formData.currency} onValueChange={(val) => setFormData({...formData, currency: val})}>
+                    <SelectTrigger className="h-12 rounded-2xl"><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="USD">USD</SelectItem>
-                      <SelectItem value="YER">YER</SelectItem>
-                      <SelectItem value="SAR">SAR</SelectItem>
+                      <SelectItem value="USD">USD (دولار)</SelectItem>
+                      <SelectItem value="YER">YER (يمني)</SelectItem>
+                      <SelectItem value="SAR">SAR (سعودي)</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
               </div>
 
-              <div className="p-4 bg-primary/5 border border-primary/10 rounded-xl flex gap-3">
+              <div className="p-4 bg-primary/5 rounded-2xl flex gap-3 border border-primary/10">
                 <Info className="h-5 w-5 text-primary shrink-0" />
-                <p className="text-xs text-muted-foreground leading-relaxed">
-                  All user-to-user transfers are held as <span className="text-primary font-bold">pending</span> until verified by our support team for your safety.
+                <p className="text-[10px] font-bold text-muted-foreground leading-relaxed">
+                  سيتم خصم المبلغ من رصيد عملة <span className="text-primary">{formData.currency}</span> فقط. تأكد من أن المستلم يستخدم نفس العملة لتجنب التأخير.
                 </p>
               </div>
 
-              <Button type="submit" className="w-full h-12 text-md font-bold" disabled={isLoading}>
-                {isLoading ? <Loader2 className="animate-spin" /> : "Send Now"}
+              <Button type="submit" className="w-full h-16 rounded-[2rem] font-black text-lg gap-2 shadow-2xl" disabled={isLoading}>
+                {isLoading ? <Loader2 className="animate-spin" /> : <Send className="h-5 w-5" />}
+                {isLoading ? "جاري الإرسال..." : "إرسال الحوالة"}
               </Button>
             </form>
           </CardContent>
