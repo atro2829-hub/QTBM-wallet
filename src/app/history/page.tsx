@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState } from 'react';
@@ -19,7 +18,12 @@ export default function HistoryPage() {
   const { user } = useUser();
   const db = useFirestore();
   const [isStatementOpen, setIsStatementOpen] = useState(false);
-  const [dateFrom, setDateFrom] = useState(format(new Date(new Date().setDate(new Date().getDate() - 30)), 'yyyy-MM-dd'));
+  
+  // Default dates: last 30 days
+  const defaultFrom = new Date();
+  defaultFrom.setDate(defaultFrom.getDate() - 30);
+  
+  const [dateFrom, setDateFrom] = useState(format(defaultFrom, 'yyyy-MM-dd'));
   const [dateTo, setDateTo] = useState(format(new Date(), 'yyyy-MM-dd'));
 
   const transactionsQuery = useMemoFirebase(() => 
@@ -67,37 +71,38 @@ export default function HistoryPage() {
         
         <Dialog open={isStatementOpen} onOpenChange={setIsStatementOpen}>
           <DialogTrigger asChild>
-            <Button variant="outline" className="w-full rounded-2xl h-12 gap-2 font-black border-primary/20 bg-primary/5 hover:bg-primary/10 transition-all">
-              <FileText className="h-4 w-4 text-primary" />
-              استخراج كشف حساب
+            <Button variant="outline" className="w-full rounded-2xl h-14 gap-3 font-black border-primary/20 bg-primary/5 hover:bg-primary/10 transition-all group">
+              <FileText className="h-5 w-5 text-primary group-hover:scale-110 transition-transform" />
+              استخراج كشف حساب PDF
             </Button>
           </DialogTrigger>
-          <DialogContent className="rounded-[2rem] w-[90%] max-w-sm" dir="rtl">
+          <DialogContent className="rounded-[2.5rem] w-[95%] max-w-sm border-none shadow-2xl" dir="rtl">
             <DialogHeader>
-              <DialogTitle className="text-right font-black">كشف الحساب الرقمي</DialogTitle>
-              <DialogDescription className="text-right font-bold">اختر الفترة الزمنية المراد عرضها في التقرير.</DialogDescription>
+              <DialogTitle className="text-right font-black text-xl">كشف الحساب الرقمي</DialogTitle>
+              <DialogDescription className="text-right font-bold text-xs opacity-70">اختر الفترة الزمنية المراد عرضها في التقرير الرسمي.</DialogDescription>
             </DialogHeader>
-            <div className="space-y-4 py-4">
+            <div className="space-y-5 py-6">
               <div className="space-y-2 text-right">
-                <Label className="text-xs font-black">من تاريخ</Label>
+                <Label className="text-[10px] font-black uppercase tracking-widest opacity-60">تاريخ البداية</Label>
                 <div className="relative">
-                   <CalendarIcon className="absolute right-3 top-3 h-4 w-4 text-muted-foreground" />
-                   <Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} className="pr-10 rounded-xl" />
+                   <CalendarIcon className="absolute right-4 top-3.5 h-4 w-4 text-muted-foreground" />
+                   <Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} className="pr-12 h-12 rounded-2xl bg-muted/30 border-none font-bold" />
                 </div>
               </div>
               <div className="space-y-2 text-right">
-                <Label className="text-xs font-black">إلى تاريخ</Label>
+                <Label className="text-[10px] font-black uppercase tracking-widest opacity-60">تاريخ النهاية</Label>
                 <div className="relative">
-                   <CalendarIcon className="absolute right-3 top-3 h-4 w-4 text-muted-foreground" />
-                   <Input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} className="pr-10 rounded-xl" />
+                   <CalendarIcon className="absolute right-4 top-3.5 h-4 w-4 text-muted-foreground" />
+                   <Input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} className="pr-12 h-12 rounded-2xl bg-muted/30 border-none font-bold" />
                 </div>
               </div>
             </div>
-            <DialogFooter>
-              <Button onClick={handleDownloadStatement} className="w-full h-12 rounded-xl font-black gap-2">
-                <Download className="h-4 w-4" />
-                عرض وتحميل كشف الحساب
+            <DialogFooter className="flex-col gap-3">
+              <Button onClick={handleDownloadStatement} className="w-full h-14 rounded-2xl font-black gap-2 shadow-xl shadow-primary/20">
+                <Download className="h-5 w-5" />
+                عرض التقرير للطباعة
               </Button>
+              <p className="text-[9px] text-center text-muted-foreground font-bold">سيفتح التقرير في صفحة جديدة مهيأة للتنزيل كـ PDF.</p>
             </DialogFooter>
           </DialogContent>
         </Dialog>
