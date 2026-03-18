@@ -6,7 +6,7 @@
 export const dynamicParams = false;
 
 export function generateStaticParams() {
-  return [{ id: 'view' }];
+  return [{ id: 'default' }];
 }
 
 export default function PortfolioStaticHistoryIdPage() {
