@@ -4,7 +4,7 @@ service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * QTBM WALLET SECURITY RULES - UPDATED FOR INSTANT TRANSFERS
+     * QTBM WALLET SECURITY RULES - UPDATED FOR INSTANT TRANSFERS & SYSTEM TASKS
      */
 
     function isSignedIn() {
@@ -32,14 +32,14 @@ service cloud.firestore {
     match /users/{userId}/wallet/{walletDoc} {
       allow get, list: if isOwner(userId) || isAdmin();
       allow create: if isOwner(userId);
-      // Allow update for instant transfers between users
+      // السماح بالتحديث للحوالات الفورية بين المستخدمين
       allow update: if isSignedIn(); 
       allow delete: if isAdmin();
     }
 
     match /users/{userId}/transactions/{transactionId} {
       allow get, list: if isOwner(userId) || isAdmin();
-      allow create: if isOwner(userId) || isSignedIn(); // Allow writing to receiver's history
+      allow create: if isOwner(userId) || isSignedIn(); 
       allow update, delete: if isAdmin();
     }
 
@@ -57,6 +57,10 @@ service cloud.firestore {
       allow create: if isSignedIn();
       allow update: if isAdmin();
       allow delete: if isAdmin();
+    }
+
+    match /system_tasks/{taskId} {
+      allow get, list, write: if isAdmin();
     }
 
     match /products/{productId} {
