@@ -2,21 +2,21 @@
 "use client";
 
 import React, { useEffect } from 'react';
-import { Bell, LogOut, User, Loader2, Search, ArrowUpRight, ArrowDownLeft, Wallet, Copy } from 'lucide-react';
+import { Bell, LogOut, User, Loader2, Search, ArrowUpRight, ArrowDownLeft, Wallet, Copy, CheckCircle2, ShieldCheck } from 'lucide-react';
 import { BalanceCarousel } from '@/components/dashboard/BalanceCarousel';
 import { ActionGrid } from '@/components/dashboard/ActionGrid';
 import { BottomNav } from '@/components/layout/BottomNav';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
-import { signOut } from 'firebase/auth';
 import { doc } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/firebase';
 import { AppLogo } from '@/components/layout/AppLogo';
 import { useToast } from '@/hooks/use-toast';
+import { cn } from '@/lib/utils';
 
-export default function Dashboard() {
+export default function PortfolioDashboard() {
   const router = useRouter();
   const auth = useAuth();
   const db = useFirestore();
@@ -58,6 +58,8 @@ export default function Dashboard() {
     toast({ title: "تم النسخ", description: "تم نسخ معرف المستخدم الخاص بك بنجاح." });
   };
 
+  const isVerified = profile?.verificationStatus === 'approved';
+
   return (
     <div className="min-h-screen mesh-background flex flex-col max-w-md mx-auto relative border-x shadow-2xl page-transition">
       <header className="p-6 pb-2 flex items-center justify-between sticky top-0 bg-background/50 backdrop-blur-xl z-20">
@@ -67,7 +69,12 @@ export default function Dashboard() {
               <AvatarImage src={`https://picsum.photos/seed/${user.uid}/100/100`} />
               <AvatarFallback className="bg-primary/10 text-primary font-black">{profile?.fullName?.charAt(0)}</AvatarFallback>
             </Avatar>
-            <div className="absolute -bottom-1 -right-1 h-4 w-4 bg-green-500 border-2 border-background rounded-full shadow-sm" />
+            <div className={cn(
+              "absolute -bottom-1 -right-1 h-5 w-5 border-2 border-background rounded-full shadow-sm flex items-center justify-center",
+              isVerified ? "bg-green-500" : "bg-orange-500"
+            )}>
+              {isVerified ? <CheckCircle2 className="h-3 w-3 text-white" /> : <ShieldCheck className="h-3 w-3 text-white" />}
+            </div>
           </div>
           <div>
             <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground opacity-70">

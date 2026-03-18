@@ -6,9 +6,15 @@
 export const dynamicParams = false;
 
 export function generateStaticParams() {
-  return [{ id: 'transaction' }];
+  // Provide a default path so static export doesn't fail.
+  return [{ id: 'default' }];
 }
 
-export default function PortfolioHistoryIdPage() {
+interface PortfolioHistoryIdPageProps {
+  params: Promise<{ id: string }>;
+}
+
+export default async function PortfolioHistoryIdPage({ params }: PortfolioHistoryIdPageProps) {
+  // Static export requirement placeholder
   return null;
 }

@@ -37,7 +37,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
 import { AppLogo } from '@/components/layout/AppLogo';
 import { updateDocumentNonBlocking, setDocumentNonBlocking, deleteDocumentNonBlocking, addDocumentNonBlocking } from '@/firebase';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 export default function AdminDashboard() {
@@ -201,7 +201,10 @@ export default function AdminDashboard() {
                   <Dialog open={isAddingProduct} onOpenChange={setIsAddingProduct}>
                     <DialogTrigger asChild><Button className="rounded-2xl gap-2 font-black shadow-lg"><Plus className="h-5 w-5" /> إضافة خدمة</Button></DialogTrigger>
                     <DialogContent dir="rtl" className="rounded-[2rem] max-w-md border-none shadow-2xl">
-                      <DialogHeader><DialogTitle className="text-right">إضافة منتج/خدمة جديدة</DialogTitle></DialogHeader>
+                      <DialogHeader>
+                        <DialogTitle className="text-right">إضافة منتج/خدمة جديدة</DialogTitle>
+                        <DialogDescription className="text-right">قم بإدخال تفاصيل الخدمة الرقمية الجديدة هنا.</DialogDescription>
+                      </DialogHeader>
                       <div className="space-y-4 pt-4">
                         <div className="space-y-2"><Label className="text-xs font-black">اسم الخدمة</Label><Input value={newProduct.name} onChange={(e) => setNewProduct({...newProduct, name: e.target.value})} placeholder="Netflix 1 Month" /></div>
                         <div className="grid grid-cols-2 gap-3">
@@ -233,14 +236,16 @@ export default function AdminDashboard() {
                 </div>
               </TabsContent>
 
-              {/* ... Rest of the tabs (approvals, investments, system) remain mostly same ... */}
               <TabsContent value="investments" className="space-y-6">
                 <div className="flex justify-between items-center">
                   <h3 className="text-xl font-black">خطط الاستثمار المتاحة</h3>
                   <Dialog open={isAddingPlan} onOpenChange={setIsAddingPlan}>
                     <DialogTrigger asChild><Button className="rounded-2xl gap-2 font-black shadow-lg"><PlusCircle className="h-5 w-5" /> إضافة خطة</Button></DialogTrigger>
                     <DialogContent dir="rtl" className="rounded-[2rem] max-w-md border-none shadow-2xl">
-                      <DialogHeader><DialogTitle className="text-right">إضافة خطة استثمارية</DialogTitle></DialogHeader>
+                      <DialogHeader>
+                        <DialogTitle className="text-right">إضافة خطة استثمارية</DialogTitle>
+                        <DialogDescription className="text-right">حدد شروط وعوائد الخطة الاستثمارية الجديدة.</DialogDescription>
+                      </DialogHeader>
                       <div className="space-y-4 pt-4">
                         <div className="space-y-2"><Label className="text-xs font-black">اسم الخطة</Label><Input value={newPlan.name} onChange={(e) => setNewPlan({...newPlan, name: e.target.value})} placeholder="خطة النمو الشهري" /></div>
                         <div className="grid grid-cols-3 gap-3">
@@ -274,10 +279,12 @@ export default function AdminDashboard() {
                 </div>
               </TabsContent>
 
-              {/* ... Rest of existing tab contents ... */}
               <TabsContent value="approvals" className="space-y-6">
                 <Card className="rounded-[2.5rem] overflow-hidden glass-morphism border-none shadow-xl">
-                  <CardHeader className="bg-primary/5 p-8 text-right"><CardTitle className="text-2xl font-black">طلبات الإيداع المعلقة</CardTitle></CardHeader>
+                  <CardHeader className="bg-primary/5 p-8 text-right">
+                    <CardTitle className="text-2xl font-black">طلبات الإيداع المعلقة</CardTitle>
+                    <CardDescription>قائمة بالتحويلات المالية التي تنتظر تأكيدك اليدوي.</CardDescription>
+                  </CardHeader>
                   <CardContent className="p-0">
                     <table className="w-full text-right">
                       <thead className="bg-muted text-[10px] font-black uppercase tracking-widest text-muted-foreground"><tr><th className="px-8 py-4">UID</th><th className="px-8 py-4">المبلغ</th><th className="px-8 py-4">العملة</th><th className="px-8 py-4">الإجراء</th></tr></thead>
@@ -291,7 +298,10 @@ export default function AdminDashboard() {
 
               <TabsContent value="system" className="space-y-6">
                 <Card className="rounded-[2.5rem] border-none shadow-2xl glass-morphism p-8 space-y-6 max-w-2xl mx-auto">
-                  <CardTitle className="text-xl font-black text-right">إعدادات الصرف والعمولات</CardTitle>
+                  <CardHeader>
+                    <CardTitle className="text-xl font-black text-right">إعدادات الصرف والعمولات</CardTitle>
+                    <CardDescription className="text-right">تحكم في أسعار الصرف العالمية المعتمدة داخل التطبيق.</CardDescription>
+                  </CardHeader>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-right">
                     <div className="space-y-2"><Label className="font-bold text-xs">سعر صرف USD إلى YER</Label><Input value={rates.usdToYerRate} onChange={(e) => setRates({...rates, usdToYerRate: e.target.value})} className="h-12 rounded-xl" /></div>
                     <div className="space-y-2"><Label className="font-bold text-xs">سعر صرف USD إلى SAR</Label><Input value={rates.usdToSarRate} onChange={(e) => setRates({...rates, usdToSarRate: e.target.value})} className="h-12 rounded-xl" /></div>

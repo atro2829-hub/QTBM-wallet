@@ -1,12 +1,9 @@
 
-'use server';
 /**
- * @fileOverview AI-powered voice command processor for QTBM Wallet.
- * Handles intent extraction and entity identification for hands-free financial operations.
+ * @fileOverview AI-powered voice command processor stub for QTBM Wallet Portfolio.
  */
 
-import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
+import { z } from 'zod';
 
 const VoiceActivatedTransactionInputSchema = z.object({
   commandText: z.string().describe('The transcribed voice command from the user.'),
@@ -25,36 +22,7 @@ const VoiceActivatedTransactionOutputSchema = z.object({
 });
 export type VoiceActivatedTransactionOutput = z.infer<typeof VoiceActivatedTransactionOutputSchema>;
 
-const voiceCommandPrompt = ai.definePrompt({
-  name: 'voiceCommandPrompt',
-  input: {schema: VoiceActivatedTransactionInputSchema},
-  output: {schema: VoiceActivatedTransactionOutputSchema},
-  prompt: `You are an AI assistant for the QTBM Wallet application. Interpret user voice commands to identify their intent and extract entities.
-
-Currencies: YER, USD, SAR
-Pages: home, services, history, settings
-
-Intents:
-- sendMoney (amount, currency, recipientUid)
-- deposit (amount, currency)
-- servicePayment (serviceName, amount, currency)
-- goToPage (page)
-
-User command: {{{commandText}}}`,
-});
-
-const voiceActivatedTransactionFlow = ai.defineFlow(
-  {
-    name: 'voiceActivatedTransactionFlow',
-    inputSchema: VoiceActivatedTransactionInputSchema,
-    outputSchema: VoiceActivatedTransactionOutputSchema,
-  },
-  async (input) => {
-    const {output} = await voiceCommandPrompt(input);
-    return output!;
-  }
-);
-
 export async function voiceActivatedTransaction(input: VoiceActivatedTransactionInput): Promise<VoiceActivatedTransactionOutput> {
-  return voiceActivatedTransactionFlow(input);
+  // Portfolio browser-safe stub
+  return { intent: 'unknown', entities: {} };
 }
