@@ -30,7 +30,7 @@ function AccountStatementContent() {
   const printRef = useRef<HTMLDivElement>(null);
   const [currentDate, setCurrentDate] = useState<string | null>(null);
 
-  // Avoid hydration mismatch for new Date()
+  // استخدام useEffect لتجنب خطأ Hydration Mismatch أثناء البناء
   useEffect(() => {
     setCurrentDate(format(new Date(), 'yyyy-MM-dd HH:mm'));
   }, []);

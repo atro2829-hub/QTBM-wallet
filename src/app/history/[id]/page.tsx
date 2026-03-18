@@ -1,16 +1,17 @@
+
 /**
  * @fileOverview This file handles dynamic history routes for static export.
- * Neutralized to satisfy 'output: export' requirements.
+ * It provides a fallback path to satisfy 'output: export' requirements.
  */
 
 export const dynamicParams = false;
 
 export function generateStaticParams() {
-  // Provide a default path so static export succeeds.
+  // توفير مسار افتراضي لكي تنجح عملية بناء المشروع الثابت
   return [{ id: 'default' }];
 }
 
 export default function StaticHistoryIdPage() {
-  // The app uses /history/detail?id=... for better compatibility.
+  // التطبيق يستخدم الآن /history/detail?id=... للتوافق الكامل مع الأندرويد
   return null;
 }

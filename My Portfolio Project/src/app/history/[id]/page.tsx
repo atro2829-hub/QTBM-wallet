@@ -1,5 +1,6 @@
+
 /**
- * @fileOverview Static export compatibility for portfolio.
+ * @fileOverview Static export compatibility for portfolio version.
  */
 
 export const dynamicParams = false;

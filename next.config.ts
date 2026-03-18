@@ -6,10 +6,10 @@ const nextConfig: NextConfig = {
   output: 'export',
   trailingSlash: true, // يضمن توافق الروابط داخل متصفحات الأندرويد ويمنع أخطاء 404
   typescript: {
-    ignoreBuildErrors: true,
+    ignoreBuildErrors: true, // يمنع توقف البناء بسبب أخطاء الأنواع
   },
   eslint: {
-    ignoreDuringBuilds: true,
+    ignoreDuringBuilds: true, // يمنع توقف البناء بسبب تنبيهات التنسيق
   },
   images: {
     unoptimized: true, // ضروري جداً للتصدير الثابت (Static Export) ليعمل داخل الأندرويد
