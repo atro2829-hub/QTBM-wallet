@@ -1,16 +1,14 @@
-
 /**
- * @fileOverview صفحة المسار الديناميكي القديم.
- * تم تعطيل هذا المسار برمجياً ليتوافق مع نظام "output: export" المطلوب للأندرويد.
- * التطبيق يستخدم حالياً المسار الثابت المتوافق: /history/detail?id=...
+ * @fileOverview This file handles dynamic history routes for static export.
+ * Since we use ?id= query params for history details, this file provides 
+ * a fallback entry to satisfy the 'output: export' build requirement.
  */
 
 export const dynamicParams = false;
 
 export function generateStaticParams() {
-  // نرجع مصفوفة فارغة لمنع Next.js من محاولة توليد صفحات ديناميكية أثناء البناء
-  // هذا يحل خطأ: Page is missing generateStaticParams()
-  return [];
+  // Returns a default static path to allow the build to succeed.
+  return [{ id: 'transaction' }];
 }
 
 export default function HistoryIdPage() {
