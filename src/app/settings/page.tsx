@@ -14,8 +14,8 @@ import {
   Languages,
   Loader2,
   Bell,
-  Wallet,
-  ArrowLeftRight
+  LayoutDashboard,
+  ShieldCheck
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
@@ -74,6 +74,8 @@ export default function SettingsPage() {
   if (isProfileLoading) return <div className="flex items-center justify-center min-h-screen"><Loader2 className="animate-spin h-10 w-10 text-primary" /></div>;
   if (!user || !profile) return null;
 
+  const isAdmin = profile.role === 'admin';
+
   return (
     <div className="min-h-screen bg-background flex flex-col max-w-md mx-auto relative border-x pb-24" dir="rtl">
       <header className="p-6 pb-2 flex items-center justify-between sticky top-0 bg-background/80 backdrop-blur-md z-10 border-b">
@@ -95,8 +97,25 @@ export default function SettingsPage() {
             </div>
           </div>
           <h2 className="text-xl font-black mt-4">{profile.fullName}</h2>
-          <p className="text-xs font-bold text-muted-foreground opacity-60 tracking-wider uppercase">الحساب موثق</p>
+          <p className="text-xs font-bold text-muted-foreground opacity-60 tracking-wider uppercase">
+            {isAdmin ? 'مدير النظام' : 'الحساب موثق'}
+          </p>
         </div>
+
+        {isAdmin && (
+          <section className="space-y-3">
+            <h3 className="px-2 text-[10px] font-black uppercase tracking-[0.2em] text-primary/70">صلاحيات الإدارة</h3>
+            <Button 
+              onClick={() => router.push('/admin/dashboard')}
+              className="w-full h-16 rounded-[2.5rem] bg-primary text-white font-black text-lg gap-3 shadow-xl shadow-primary/20 group overflow-hidden relative"
+            >
+              <div className="absolute inset-0 bg-white/10 translate-x-full group-hover:translate-x-0 transition-transform duration-500" />
+              <LayoutDashboard className="h-6 w-6 relative z-10" />
+              <span className="relative z-10">لوحة تحكم الإدارة</span>
+              <ShieldCheck className="h-5 w-5 absolute left-6 opacity-30 group-hover:scale-125 transition-transform" />
+            </Button>
+          </section>
+        )}
 
         <div className="space-y-6">
           <section className="space-y-3">
@@ -159,19 +178,6 @@ export default function SettingsPage() {
                   <div className="flex flex-col">
                     <span className="font-bold text-sm">الأمان والخصوصية</span>
                     <span className="text-[10px] text-muted-foreground font-bold">تغيير كلمة المرور، المصادقة</span>
-                  </div>
-                </div>
-                <ChevronLeft className="h-5 w-5 text-muted-foreground group-hover:-translate-x-1 transition-transform" />
-              </div>
-
-              <div className="p-5 flex items-center justify-between active:bg-accent/50 transition-all cursor-pointer group">
-                <div className="flex items-center gap-4">
-                  <div className="p-3 bg-purple-500/10 text-purple-600 rounded-2xl">
-                    <Bell className="h-5 w-5" />
-                  </div>
-                  <div className="flex flex-col">
-                    <span className="font-bold text-sm">الإشعارات</span>
-                    <span className="text-[10px] text-muted-foreground font-bold">تنبيهات العمليات، العروض</span>
                   </div>
                 </div>
                 <ChevronLeft className="h-5 w-5 text-muted-foreground group-hover:-translate-x-1 transition-transform" />
