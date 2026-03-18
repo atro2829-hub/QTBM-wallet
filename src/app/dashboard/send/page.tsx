@@ -11,7 +11,8 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
-import { doc, collection, addDoc, serverTimestamp, getDoc } from 'firebase/firestore';
+import { doc, collection, addDoc, serverTimestamp, getDoc, increment } from 'firebase/firestore';
+import { updateDocumentNonBlocking, addDocumentNonBlocking } from '@/firebase';
 
 export default function SendMoneyPage() {
   const router = useRouter();
@@ -83,8 +84,8 @@ export default function SendMoneyPage() {
     }
 
     const amount = parseFloat(formData.amount);
-    const currencyKey = `${formData.currency.toLowerCase()}Balance` as keyof typeof wallet;
-    const currentBalance = (wallet[currencyKey] as number) || 0;
+    const currencyField = `${formData.currency.toLowerCase()}Balance`;
+    const currentBalance = (wallet[currencyField as keyof typeof wallet] as number) || 0;
     
     if (isNaN(amount) || amount <= 0) {
       toast({ title: "مبلغ غير صالح", variant: "destructive" });
@@ -93,7 +94,7 @@ export default function SendMoneyPage() {
 
     if (currentBalance < amount) {
       toast({ 
-        title: "رصيد غير كافٍ في هذه العملة", 
+        title: "رصيد غير كافٍ", 
         description: `رصيدك الحالي في ${formData.currency} هو ${currentBalance}.`, 
         variant: "destructive" 
       });
@@ -102,21 +103,22 @@ export default function SendMoneyPage() {
 
     setIsLoading(true);
     try {
-      // Create a system task for admin to process
-      const taskRef = await addDoc(collection(db, 'system_tasks'), {
-        type: 'transfer',
-        senderUid: user.uid,
-        senderName: wallet.fullName || user.displayName || 'مرسل',
-        receiverUid: formData.recipientUid,
-        receiverName: recipientName,
-        amount: amount,
-        currency: formData.currency,
-        status: 'pending',
-        createdAt: serverTimestamp(),
+      // 1. DEDUCT from sender's wallet
+      const senderWalletRef = doc(db, 'users', user.uid, 'wallet', 'wallet');
+      updateDocumentNonBlocking(senderWalletRef, {
+        [currencyField]: increment(-amount),
+        updatedAt: serverTimestamp()
       });
 
-      // Record in user's history
-      await addDoc(collection(db, 'users', user.uid, 'transactions'), {
+      // 2. ADD to receiver's wallet
+      const receiverWalletRef = doc(db, 'users', formData.recipientUid, 'wallet', 'wallet');
+      updateDocumentNonBlocking(receiverWalletRef, {
+        [currencyField]: increment(amount),
+        updatedAt: serverTimestamp()
+      });
+
+      // 3. Record in SENDER'S history
+      addDocumentNonBlocking(collection(db, 'users', user.uid, 'transactions'), {
         initiatorUserId: user.uid,
         type: 'send',
         amount: amount,
@@ -124,15 +126,27 @@ export default function SendMoneyPage() {
         description: `حوالة صادر إلى ${recipientName}`,
         recipientUid: formData.recipientUid,
         recipientName: recipientName,
-        status: 'Pending',
-        taskId: taskRef.id,
+        status: 'Completed',
         createdAt: serverTimestamp(),
       });
 
-      toast({ title: "تم إرسال الطلب للمراجعة", description: "سيتم تنفيذ الحوالة فور موافقة الإدارة." });
+      // 4. Record in RECEIVER'S history
+      addDocumentNonBlocking(collection(db, 'users', formData.recipientUid, 'transactions'), {
+        initiatorUserId: user.uid,
+        type: 'receive',
+        amount: amount,
+        currency: formData.currency,
+        description: `حوالة وارد من ${wallet.fullName || user.displayName || 'مستخدم'}`,
+        senderUid: user.uid,
+        senderName: wallet.fullName || user.displayName || 'مستخدم',
+        status: 'Completed',
+        createdAt: serverTimestamp(),
+      });
+
+      toast({ title: "تم التحويل فوراً", description: "تمت إضافة المبلغ إلى محفظة المستلم بنجاح." });
       router.push('/dashboard');
     } catch (error: any) {
-      toast({ title: "خطأ", description: error.message, variant: "destructive" });
+      toast({ title: "خطأ في التحويل", description: error.message, variant: "destructive" });
     } finally {
       setIsLoading(false);
     }
@@ -141,7 +155,7 @@ export default function SendMoneyPage() {
   return (
     <div className="min-h-screen mesh-background flex flex-col max-w-md mx-auto relative border-x" dir="rtl">
       <header className="p-6 flex items-center justify-between sticky top-0 bg-background/50 backdrop-blur-md z-10 border-b">
-        <h1 className="text-xl font-black">إرسال رصيد آمن</h1>
+        <h1 className="text-xl font-black">إرسال فوري وآمن</h1>
         <Button variant="ghost" size="icon" onClick={() => router.back()} className="rounded-full">
           <ArrowLeft className="h-6 w-6 rotate-180" />
         </Button>
@@ -154,7 +168,7 @@ export default function SendMoneyPage() {
                <ShieldCheck className="h-5 w-5 text-primary" />
                تأكيد هوية المستلم
             </CardTitle>
-            <CardDescription className="font-bold">تأكد من اسم المستلم قبل إرسال أي مبالغ.</CardDescription>
+            <CardDescription className="font-bold">الحوالات فورية ولا يمكن التراجع عنها.</CardDescription>
           </CardHeader>
           <CardContent className="pt-6 space-y-6">
             <form onSubmit={handleSubmit} className="space-y-6">
@@ -216,7 +230,7 @@ export default function SendMoneyPage() {
               <div className="p-4 bg-primary/5 rounded-2xl flex gap-3 border border-primary/10">
                 <Info className="h-5 w-5 text-primary shrink-0" />
                 <p className="text-[10px] font-bold text-muted-foreground leading-relaxed">
-                  سيتم معالجة الطلب من قبل الإدارة فور الإرسال. تأكد من أن المبلغ والعملة صحيحان، حيث لا يمكن التراجع عن الحوالات المكتملة.
+                  هذه المعاملة ستنفذ **فوراً**. سيتم خصم المبلغ من رصيدك وإضافته لحساب المستلم في نفس اللحظة.
                 </p>
               </div>
 
@@ -226,7 +240,7 @@ export default function SendMoneyPage() {
                 disabled={isLoading || !recipientName}
               >
                 {isLoading ? <Loader2 className="animate-spin h-6 w-6" /> : <Send className="h-6 w-6" />}
-                {isLoading ? "جاري المعالجة..." : "إرسال الآن"}
+                {isLoading ? "جاري التحويل..." : "إرسال فوراً"}
               </Button>
             </form>
           </CardContent>

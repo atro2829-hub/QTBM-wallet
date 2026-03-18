@@ -4,7 +4,7 @@ service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * QTBM WALLET SECURITY RULES - FINALIZED FOR DEPLOYMENT
+     * QTBM WALLET SECURITY RULES - UPDATED FOR INSTANT TRANSFERS
      */
 
     function isSignedIn() {
@@ -23,7 +23,6 @@ service cloud.firestore {
       allow get: if isOwner(userId) || isAdmin();
       allow list: if isAdmin();
       allow create: if isOwner(userId);
-      // Lock legal information once set
       allow update: if isOwner(userId) && (
         !('fullName' in resource.data) || request.resource.data.fullName == resource.data.fullName
       );
@@ -33,13 +32,14 @@ service cloud.firestore {
     match /users/{userId}/wallet/{walletDoc} {
       allow get, list: if isOwner(userId) || isAdmin();
       allow create: if isOwner(userId);
-      allow update: if isAdmin() || isOwner(userId);
+      // Allow update for instant transfers between users
+      allow update: if isSignedIn(); 
       allow delete: if isAdmin();
     }
 
     match /users/{userId}/transactions/{transactionId} {
       allow get, list: if isOwner(userId) || isAdmin();
-      allow create: if isOwner(userId);
+      allow create: if isOwner(userId) || isSignedIn(); // Allow writing to receiver's history
       allow update, delete: if isAdmin();
     }
 
@@ -71,7 +71,6 @@ service cloud.firestore {
       allow update, delete: if isAdmin();
     }
 
-    // Allow public access to system config for login page information
     match /system/{document=**} {
       allow get, list: if true;
       allow write: if isAdmin();
