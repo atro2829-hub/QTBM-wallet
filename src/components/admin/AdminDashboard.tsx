@@ -9,20 +9,11 @@ import {
   Plus,
   Trash2,
   Settings,
-  Users,
   Layers,
-  Banknote,
   PlusCircle,
-  Image as ImageIcon,
   TrendingUp,
-  Percent,
-  Coins,
-  Globe,
   Save,
   Loader2,
-  ShieldAlert,
-  Calendar,
-  Zap,
   Database
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -32,13 +23,12 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useFirestore, useCollection, useMemoFirebase, useDoc, useUser } from '@/firebase';
-import { collection, doc, serverTimestamp, query, where, increment, addDoc, deleteDoc, writeBatch } from 'firebase/firestore';
+import { collection, doc, serverTimestamp, query, where, addDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
 import { AppLogo } from '@/components/layout/AppLogo';
-import { updateDocumentNonBlocking, setDocumentNonBlocking, deleteDocumentNonBlocking, addDocumentNonBlocking } from '@/firebase';
+import { setDocumentNonBlocking, deleteDocumentNonBlocking, addDocumentNonBlocking } from '@/firebase';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from '@/components/ui/dialog';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 export function AdminDashboardContent() {
   const router = useRouter();
