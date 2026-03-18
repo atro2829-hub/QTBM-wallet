@@ -1,8 +1,7 @@
 
 /**
- * تم تعطيل هذا المسار الديناميكي ليتوافق مع نظام "output: export".
- * التطبيق يعتمد حالياً على المسار الثابت /history/detail?id=...
- * هذا الملف موجود فقط لضمان نجاح عملية بناء الهيكل البرمجي.
+ * @fileOverview نسخة مجلد Portfolio للمسار الديناميكي.
+ * تم التعطيل لضمان نجاح بناء المشروع الكامل وتوافقه مع معايير التصدير الثابت.
  */
 
 export const dynamicParams = false;
@@ -11,6 +10,6 @@ export function generateStaticParams() {
   return [];
 }
 
-export default function HistoryIdPage() {
+export default function PortfolioHistoryIdPage() {
   return null;
 }
