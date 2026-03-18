@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { Eye, EyeOff, Sparkles } from 'lucide-react';
+import { Eye, EyeOff, Sparkles, Coins } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import {
   Carousel,
@@ -35,6 +35,7 @@ export function BalanceCarousel() {
 
   const currencies = [
     { code: 'USD', label: 'الدولار الأمريكي', symbol: '$', balance: wallet.usdBalance, style: 'balance-card-gradient text-white' },
+    { code: 'GOLD', label: 'رصيد الذهب (جرام)', symbol: 'GR', balance: wallet.goldBalance || 0, style: 'bg-gradient-to-br from-yellow-400 via-amber-500 to-yellow-600 text-white shadow-yellow-500/20' },
     { code: 'YER', label: 'الريال اليمني', symbol: '﷼', balance: wallet.yerBalance, style: 'balance-card-dark text-white' },
     { code: 'SAR', label: 'الريال السعودي', symbol: 'SR', balance: wallet.sarBalance, style: 'balance-card-dark text-white' },
   ];
@@ -43,7 +44,7 @@ export function BalanceCarousel() {
     <div className="w-full px-4 py-4" dir={isRtl ? 'rtl' : 'ltr'}>
       <div className="flex items-center justify-between mb-4 px-2">
         <h2 className="text-sm font-black uppercase tracking-[0.2em] text-muted-foreground/60">
-          {isRtl ? 'الأصول الرقمية' : 'Digital Assets'}
+          {isRtl ? 'الأصول والذهب' : 'Digital Assets'}
         </h2>
         <button 
           onClick={() => setShowBalances(!showBalances)}
@@ -66,11 +67,11 @@ export function BalanceCarousel() {
         <CarouselContent className={cn(isRtl ? "-mr-4" : "-ml-4")}>
           {currencies.map((currency) => (
             <CarouselItem key={currency.code} className={cn("basis-[92%] transition-all duration-500", isRtl ? "pr-4" : "pl-4")}>
-              <Card className={cn("border-none overflow-hidden relative rounded-[2.5rem] h-48 group shadow-2xl", currency.style)}>
+              <Card className={cn("border-none overflow-hidden relative rounded-[2.5rem] h-48 group shadow-2xl transition-all duration-500", currency.style)}>
                 <CardContent className="p-8 h-full flex flex-col justify-between">
                   {/* Decorative Elements */}
                   <div className={cn("absolute top-0 p-8 opacity-20 group-hover:scale-125 transition-transform duration-700", isRtl ? "left-0" : "right-0")}>
-                    <Sparkles className="h-12 w-12" />
+                    {currency.code === 'GOLD' ? <Coins className="h-12 w-12" /> : <Sparkles className="h-12 w-12" />}
                   </div>
                   
                   <div className="flex justify-between items-start z-10">
@@ -86,7 +87,7 @@ export function BalanceCarousel() {
                   <div className="z-10">
                     <p className="text-4xl font-black tracking-tighter transition-all duration-300">
                       {showBalances 
-                        ? (currency.balance || 0).toLocaleString()
+                        ? (currency.balance || 0).toLocaleString(undefined, { minimumFractionDigits: currency.code === 'GOLD' ? 2 : 0 })
                         : '••••••••'
                       }
                     </p>

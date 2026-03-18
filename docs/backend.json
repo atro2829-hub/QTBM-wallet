@@ -25,7 +25,8 @@
         "userId": { "type": "string" },
         "yerBalance": { "type": "number" },
         "usdBalance": { "type": "number" },
-        "sarBalance": { "type": "number" }
+        "sarBalance": { "type": "number" },
+        "goldBalance": { "type": "number", "description": "Gold balance in grams" }
       }
     },
     "InvestmentPlan": {
