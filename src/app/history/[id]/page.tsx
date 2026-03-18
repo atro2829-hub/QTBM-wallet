@@ -1,12 +1,15 @@
 
-"use client";
-
 import React from 'react';
 
 /**
- * توافق التصدير الثابت لـ Next.js 15.
- * تم تحويل الصفحة إلى Client Component لضمان استقرار عملية البناء.
+ * @fileOverview صفحة تفاصيل المعاملة المتوافقة مع التصدير الثابت.
  */
+
+export async function generateStaticParams() {
+  // توليد مسار افتراضي لضمان نجاح عملية التصدير الثابت
+  return [{ id: 'default' }];
+}
+
 export default function StaticHistoryIdPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-background">

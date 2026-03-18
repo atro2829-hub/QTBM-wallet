@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -6,17 +7,15 @@ import { FirestorePermissionError } from '@/firebase/errors';
 
 /**
  * يستمع لأخطاء الصلاحيات العالمية.
- * تم التأمين لمنع أخطاء البناء (Build-time errors).
+ * تم تعديله ليكون صامتاً تماماً أثناء مرحلة البناء (Static Generation).
  */
 export function FirebaseErrorListener() {
-  const [mounted, setMounted] = useState(false);
-
   useEffect(() => {
-    setMounted(true);
+    // التأكد من التشغيل فقط في المتصفح
+    if (typeof window === 'undefined') return;
+
     const handleError = (error: FirestorePermissionError) => {
-      if (typeof window !== 'undefined') {
-        console.error("Firestore Permission Denied:", error.message);
-      }
+      console.error("Firestore Permission Denied:", error.message);
     };
 
     errorEmitter.on('permission-error', handleError);

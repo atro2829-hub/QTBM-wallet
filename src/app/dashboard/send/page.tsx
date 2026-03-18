@@ -30,7 +30,7 @@ function SendMoneyContent() {
     recipientUid: '',
   });
 
-  const walletRef = useMemoFirebase(() => user ? doc(db, 'users', user.uid, 'wallet', 'wallet') : null, [db, user]);
+  const walletRef = useMemoFirebase(() => user && db ? doc(db, 'users', user.uid, 'wallet', 'wallet') : null, [db, user]);
   const { data: wallet } = useDoc(walletRef);
 
   useEffect(() => {
@@ -42,18 +42,18 @@ function SendMoneyContent() {
     if (currency) setFormData(prev => ({ ...prev, currency }));
     if (recipientUid) {
       setFormData(prev => ({ ...prev, recipientUid }));
-      verifyRecipient(recipientUid);
+      if (db) verifyRecipient(recipientUid, db);
     }
-  }, [searchParams]);
+  }, [searchParams, db]);
 
-  const verifyRecipient = async (uid: string) => {
+  const verifyRecipient = async (uid: string, firestoreDb: any) => {
     if (!uid || uid.length < 5) {
       setRecipientName(null);
       return;
     }
     setIsSearching(true);
     try {
-      const userDoc = await getDoc(doc(db, 'users', uid));
+      const userDoc = await getDoc(doc(firestoreDb, 'users', uid));
       if (userDoc.exists()) {
         setRecipientName(userDoc.data().fullName);
       } else {
@@ -69,8 +69,8 @@ function SendMoneyContent() {
   const handleUidChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
     setFormData({ ...formData, recipientUid: val });
-    if (val.length >= 10) {
-      verifyRecipient(val);
+    if (val.length >= 10 && db) {
+      verifyRecipient(val, db);
     } else {
       setRecipientName(null);
     }
@@ -78,7 +78,7 @@ function SendMoneyContent() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user || !wallet || !recipientName) {
+    if (!user || !wallet || !recipientName || !db) {
       if (!recipientName) toast({ title: "يرجى التأكد من هوية المستلم أولاً", variant: "destructive" });
       return;
     }

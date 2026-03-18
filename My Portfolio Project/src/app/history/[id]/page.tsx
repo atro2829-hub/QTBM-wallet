@@ -1,11 +1,14 @@
 
-"use client";
-
 import React from 'react';
 
 /**
- * نسخة Portfolio المتوافقة مع التصدير الثابت لـ Next.js 15.
+ * @fileOverview نسخة Portfolio المتوافقة مع التصدير الثابت.
  */
+
+export async function generateStaticParams() {
+  return [{ id: 'default' }];
+}
+
 export default function PortfolioStaticHistoryIdPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-background">
