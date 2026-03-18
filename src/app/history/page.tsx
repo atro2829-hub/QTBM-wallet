@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState } from 'react';
@@ -128,7 +129,7 @@ export default function HistoryPage() {
               <div 
                 key={tx.id} 
                 className="glass-morphism rounded-3xl p-4 flex items-center gap-4 active:scale-95 transition-all cursor-pointer group hover:bg-white/90 dark:hover:bg-black/50"
-                onClick={() => router.push(`/history/${tx.id}`)}
+                onClick={() => router.push(`/history/detail?id=${tx.id}`)}
               >
                 <div className="p-3 bg-background rounded-2xl shadow-sm shrink-0 group-hover:rotate-12 transition-transform">
                   {getIcon(tx.type)}
