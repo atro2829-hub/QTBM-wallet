@@ -1,16 +1,16 @@
 
 /**
- * @fileOverview Static export compatibility for history routes.
- * Using generateStaticParams to satisfy Next.js 'output: export' requirements.
+ * @fileOverview توافق التصدير الثابت لـ Next.js (output: export).
+ * يتم استخدام دالة generateStaticParams لضمان نجاح بناء تطبيق الأندرويد.
  */
 
 export const dynamicParams = false;
 
 export function generateStaticParams() {
-  // تزويد النظام بمسار افتراضي لنجاح عملية البناء الثابت
+  // تزويد معرّف افتراضي لإرضاء محرك البناء الثابت
   return [{ id: 'view' }];
 }
 
 export default function StaticHistoryPage() {
-  return null;
+  return <div className="hidden" aria-hidden="true" />;
 }

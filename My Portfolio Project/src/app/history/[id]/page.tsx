@@ -10,5 +10,5 @@ export function generateStaticParams() {
 }
 
 export default function PortfolioStaticHistoryIdPage() {
-  return null;
+  return <div className="hidden" aria-hidden="true" />;
 }
