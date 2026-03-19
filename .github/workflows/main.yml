@@ -1,0 +1,29 @@
+name: Build Android APK
+
+on:
+  push:
+    branches:
+      - main  # هذا سيعمل فقط عندما تقوم بدفع التغييرات إلى فرع 'main'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest  # البيئة التي ستعمل عليها العملية
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2  # يقوم بسحب الكود من المستودع
+
+      - name: Set up JDK
+        uses: actions/setup-java@v2  # يقوم بتثبيت JDK
+        with:
+          distribution: 'temurin'
+          java-version: '11'  # تأكد من أنك تستخدم نفس النسخة التي تستخدمها في بيئة المشروع
+
+      - name: Build APK
+        run: ./gradlew assembleRelease  # الأمر لبناء APK (تأكد من أن مشروعك يحتوي على gradlew)
+
+      - name: Upload APK as artifact
+        uses: actions/upload-artifact@v2  # يرفع الـ APK كـ "artifact" قابل للتنزيل
+        with:
+          name: app-release.apk
+          path: app/build/outputs/apk/release/app-release.apk  # المسار إلى ملف APK الذي يتم بناءه
