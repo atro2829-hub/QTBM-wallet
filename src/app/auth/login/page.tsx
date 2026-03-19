@@ -23,7 +23,7 @@ function LoginContent() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
-  // Secure reference: only create if db is available
+  // حماية المرجع من القيم الفارغة أثناء البناء
   const configRef = useMemoFirebase(() => db ? doc(db, 'system', 'config') : null, [db]);
   const { data: config } = useDoc(configRef);
 

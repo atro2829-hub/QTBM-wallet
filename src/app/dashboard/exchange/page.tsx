@@ -1,12 +1,11 @@
-
 "use client";
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowRight, RefreshCw, Info, Loader2, ShieldCheck, AlertCircle } from 'lucide-react';
+import { ArrowRight, RefreshCw, Info, Loader2, ShieldCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
@@ -25,10 +24,10 @@ export default function ExchangePage() {
   const [toCurrency, setToCurrency] = useState('USD');
   const [amount, setAmount] = useState('');
 
-  const walletRef = useMemoFirebase(() => user ? doc(db, 'users', user.uid, 'wallet', 'wallet') : null, [db, user]);
+  const walletRef = useMemoFirebase(() => (user && db) ? doc(db, 'users', user.uid, 'wallet', 'wallet') : null, [db, user]);
   const { data: wallet } = useDoc(walletRef);
 
-  const configRef = useMemoFirebase(() => doc(db, 'system', 'config'), [db]);
+  const configRef = useMemoFirebase(() => db ? doc(db, 'system', 'config') : null, [db]);
   const { data: config } = useDoc(configRef);
 
   const YER_RATE = config?.usdToYerRate || 1500;
@@ -50,7 +49,7 @@ export default function ExchangePage() {
   };
 
   const handleExchange = async () => {
-    if (!user || !wallet || !amount) return;
+    if (!user || !wallet || !amount || !db || !walletRef) return;
     const fromAmount = parseFloat(amount);
     const toAmount = calculateExchange();
 
@@ -67,7 +66,7 @@ export default function ExchangePage() {
       const fromField = `${fromCurrency.toLowerCase()}Balance`;
       const toField = `${toCurrency.toLowerCase()}Balance`;
 
-      updateDocumentNonBlocking(walletRef!, {
+      updateDocumentNonBlocking(walletRef, {
         [fromField]: increment(-fromAmount),
         [toField]: increment(toAmount),
         updatedAt: serverTimestamp()

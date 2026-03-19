@@ -73,14 +73,14 @@ function ServicesContent() {
   };
 
   const handleFinalizePurchase = async () => {
-    if (!currentUser || !wallet || !selectedProduct || !shippingId.trim()) {
+    if (!currentUser || !wallet || !selectedProduct || !shippingId.trim() || !db) {
       toast({ title: "خطأ", description: "يرجى إدخال معرف الشحن أو البريد الإلكتروني.", variant: "destructive" });
       return;
     }
 
     setIsProcessing(true);
     try {
-      await addDoc(collection(db!, 'users', currentUser.uid, 'transactions'), {
+      await addDoc(collection(db, 'users', currentUser.uid, 'transactions'), {
         initiatorUserId: currentUser.uid,
         type: 'purchase',
         amount: selectedProduct.price,
@@ -103,7 +103,7 @@ function ServicesContent() {
   };
 
   const handleBuyUsdt = async () => {
-    if (!currentUser || !wallet) return;
+    if (!currentUser || !wallet || !db) return;
     const amount = parseFloat(usdtAmount);
     if (isNaN(amount) || amount <= 0) return;
 
@@ -122,7 +122,7 @@ function ServicesContent() {
 
     setIsProcessing(true);
     try {
-      await addDoc(collection(db!, 'users', currentUser.uid, 'transactions'), {
+      await addDoc(collection(db, 'users', currentUser.uid, 'transactions'), {
         initiatorUserId: currentUser.uid,
         type: 'purchase',
         amount: totalCost,

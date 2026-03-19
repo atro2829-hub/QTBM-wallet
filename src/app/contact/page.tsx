@@ -1,4 +1,3 @@
-
 "use client";
 
 import React from 'react';
@@ -13,7 +12,9 @@ import { AppLogo } from '@/components/layout/AppLogo';
 export default function ContactPage() {
   const router = useRouter();
   const db = useFirestore();
-  const configRef = useMemoFirebase(() => doc(db, 'system', 'config'), [db]);
+  
+  // حماية المرجع من القيم الفارغة أثناء البناء
+  const configRef = useMemoFirebase(() => db ? doc(db, 'system', 'config') : null, [db]);
   const { data: config } = useDoc(configRef);
 
   const phone = config?.contactPhone || '775371829';

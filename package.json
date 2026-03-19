@@ -10,7 +10,7 @@
     "cap:sync": "npx cap sync",
     "cap:add-android": "npx cap add android",
     "cap:open-android": "npx cap open android",
-    "apk:prepare": "npm run build && npx cap sync",
+    "apk:prepare": "rm -rf out .next && npm run build && npx cap sync",
     "apk:build-debug": "cd android && ./gradlew assembleDebug",
     "apk:full-build": "npm run apk:prepare && npm run apk:build-debug"
   },
