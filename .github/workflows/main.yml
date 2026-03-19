@@ -3,11 +3,11 @@ name: Build Android APK
 on:
   push:
     branches:
-      - main  # هذا سيعمل فقط عندما تقوم بدفع التغييرات إلى فرع 'main'
+      - main  # يعمل فقط عندما تقوم بدفع التغييرات إلى الفرع 'main'
 
 jobs:
   build:
-    runs-on: ubuntu-latest  # البيئة التي ستعمل عليها العملية
+    runs-on: ubuntu-latest  # البيئة التي سيتم العمل عليها (Ubuntu)
 
     steps:
       - name: Checkout code
@@ -20,10 +20,10 @@ jobs:
           java-version: '11'  # تأكد من أنك تستخدم نفس النسخة التي تستخدمها في بيئة المشروع
 
       - name: Build APK
-        run: ./gradlew assembleRelease  # الأمر لبناء APK (تأكد من أن مشروعك يحتوي على gradlew)
+        run: ./gradlew assembleRelease  # يقوم ببناء APK من خلال Gradle
 
       - name: Upload APK as artifact
-        uses: actions/upload-artifact@v2  # يرفع الـ APK كـ "artifact" قابل للتنزيل
+        uses: actions/upload-artifact@v3  # تم تحديث النسخة إلى v3
         with:
           name: app-release.apk
-          path: app/build/outputs/apk/release/app-release.apk  # المسار إلى ملف APK الذي يتم بناءه
+          path: app/build/outputs/apk/release/app-release.apk  # المسار إلى ملف APK الناتج
