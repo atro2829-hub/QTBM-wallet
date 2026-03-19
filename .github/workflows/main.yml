@@ -23,7 +23,7 @@ jobs:
         run: ./gradlew assembleRelease  # يقوم ببناء APK من خلال Gradle
 
       - name: Upload APK as artifact
-        uses: actions/upload-artifact@v3  # تم تحديث النسخة إلى v3
+        uses: actions/upload-artifact@v3.1  # تم تحديث النسخة إلى v3.1
         with:
           name: app-release.apk
           path: app/build/outputs/apk/release/app-release.apk  # المسار إلى ملف APK الناتج
