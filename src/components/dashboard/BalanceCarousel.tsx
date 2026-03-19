@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useEffect } from 'react';
@@ -19,10 +18,10 @@ export function BalanceCarousel() {
   const [showBalances, setShowBalances] = useState(true);
   const [isRtl, setIsRtl] = useState(true);
 
-  const userProfileRef = useMemoFirebase(() => user ? doc(db, 'users', user.uid) : null, [db, user]);
+  const userProfileRef = useMemoFirebase(() => user && db ? doc(db, 'users', user.uid) : null, [db, user]);
   const { data: profile } = useDoc(userProfileRef);
 
-  const walletRef = useMemoFirebase(() => user ? doc(db, 'users', user.uid, 'wallet', 'wallet') : null, [db, user]);
+  const walletRef = useMemoFirebase(() => user && db ? doc(db, 'users', user.uid, 'wallet', 'wallet') : null, [db, user]);
   const { data: wallet } = useDoc(walletRef);
 
   useEffect(() => {
@@ -69,7 +68,6 @@ export function BalanceCarousel() {
             <CarouselItem key={currency.code} className={cn("basis-[92%] transition-all duration-500", isRtl ? "pr-4" : "pl-4")}>
               <Card className={cn("border-none overflow-hidden relative rounded-[2.5rem] h-48 group shadow-2xl transition-all duration-500", currency.style)}>
                 <CardContent className="p-8 h-full flex flex-col justify-between">
-                  {/* Decorative Elements */}
                   <div className={cn("absolute top-0 p-8 opacity-20 group-hover:scale-125 transition-transform duration-700", isRtl ? "left-0" : "right-0")}>
                     {currency.code === 'GOLD' ? <Coins className="h-12 w-12" /> : <Sparkles className="h-12 w-12" />}
                   </div>
@@ -96,7 +94,6 @@ export function BalanceCarousel() {
                     </p>
                   </div>
 
-                  {/* Geometric Wave SVG Background */}
                   <div className={cn("absolute -bottom-10 opacity-10 pointer-events-none transition-all duration-700 group-hover:scale-150", isRtl ? "-right-10" : "-left-10")}>
                     <svg width="200" height="200" viewBox="0 0 100 100">
                       <circle cx={isRtl ? "100" : "0"} cy="100" r="80" fill="white" />

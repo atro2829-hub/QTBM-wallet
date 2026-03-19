@@ -47,7 +47,7 @@ function SendMoneyContent() {
   }, [searchParams, db]);
 
   const verifyRecipient = async (uid: string, firestoreDb: any) => {
-    if (!uid || uid.length < 5) {
+    if (!uid || uid.length < 5 || !firestoreDb) {
       setRecipientName(null);
       return;
     }

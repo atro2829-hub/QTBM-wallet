@@ -1,7 +1,6 @@
-
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, Suspense } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowRight, Coins, Gamepad2, Loader2, Info, ShoppingCart, UserCheck, ShieldCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -17,7 +16,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 
-export default function ServicesPage() {
+function ServicesContent() {
   const router = useRouter();
   const { user: currentUser } = useUser();
   const db = useFirestore();
@@ -27,18 +26,17 @@ export default function ServicesPage() {
   const [usdtAmount, setUsdtAmount] = useState('');
   const [purchaseCurrency, setPurchaseCurrency] = useState('USD');
   
-  // States for Product Purchase Dialog
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
   const [shippingId, setShippingId] = useState('');
   const [isPurchaseDialogOpen, setIsPurchaseDialogOpen] = useState(false);
   
-  const productsQuery = useMemoFirebase(() => collection(db, 'products'), [db]);
+  const productsQuery = useMemoFirebase(() => db ? collection(db, 'products') : null, [db]);
   const { data: products } = useCollection(productsQuery);
 
-  const walletRef = useMemoFirebase(() => currentUser ? doc(db, 'users', currentUser.uid, 'wallet', 'wallet') : null, [db, currentUser]);
+  const walletRef = useMemoFirebase(() => currentUser && db ? doc(db, 'users', currentUser.uid, 'wallet', 'wallet') : null, [db, currentUser]);
   const { data: wallet } = useDoc(walletRef);
 
-  const configRef = useMemoFirebase(() => doc(db, 'system', 'config'), [db]);
+  const configRef = useMemoFirebase(() => db ? doc(db, 'system', 'config') : null, [db]);
   const { data: config } = useDoc(configRef);
 
   const COMMISSION_RATE = config?.usdtCommission || 0.05;
@@ -82,7 +80,7 @@ export default function ServicesPage() {
 
     setIsProcessing(true);
     try {
-      await addDoc(collection(db, 'users', currentUser.uid, 'transactions'), {
+      await addDoc(collection(db!, 'users', currentUser.uid, 'transactions'), {
         initiatorUserId: currentUser.uid,
         type: 'purchase',
         amount: selectedProduct.price,
@@ -124,7 +122,7 @@ export default function ServicesPage() {
 
     setIsProcessing(true);
     try {
-      await addDoc(collection(db, 'users', currentUser.uid, 'transactions'), {
+      await addDoc(collection(db!, 'users', currentUser.uid, 'transactions'), {
         initiatorUserId: currentUser.uid,
         type: 'purchase',
         amount: totalCost,
@@ -191,7 +189,7 @@ export default function ServicesPage() {
                   </div>
                 </div>
                 <Button className="w-full h-16 rounded-[2rem] font-black text-lg shadow-xl active:scale-95 transition-all" disabled={isProcessing} onClick={handleBuyUsdt}>
-                  {isProcessing ? <Loader2 className="animate-spin h-6 w-6" /> : "إتمام الشراء الآن"}
+                  {isProcessing ? <Loader2 className="animate-spin h-6 w-6" /> : "إتم الشراء الآن"}
                 </Button>
               </CardContent>
             </Card>
@@ -234,7 +232,6 @@ export default function ServicesPage() {
         </Tabs>
       </main>
 
-      {/* Purchase Confirmation Dialog with Shipping Info */}
       <Dialog open={isPurchaseDialogOpen} onOpenChange={setIsPurchaseDialogOpen}>
         <DialogContent className="rounded-[2.5rem] border-none shadow-2xl max-w-sm" dir="rtl">
           <DialogHeader>
@@ -289,5 +286,13 @@ export default function ServicesPage() {
 
       <BottomNav />
     </div>
+  );
+}
+
+export default function ServicesPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-background"><Loader2 className="animate-spin h-10 w-10 text-primary" /></div>}>
+      <ServicesContent />
+    </Suspense>
   );
 }

@@ -1,9 +1,8 @@
-
 "use client";
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowRight, TrendingUp, ShieldCheck, Clock, CheckCircle2, Loader2, Sparkles, PlusCircle } from 'lucide-react';
+import { ArrowRight, TrendingUp, Sparkles, CheckCircle2, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { useUser, useFirestore, useCollection, useDoc, useMemoFirebase } from '@/firebase';
@@ -22,13 +21,13 @@ export default function InvestPage() {
   const db = useFirestore();
   const { toast } = useToast();
 
-  const plansQuery = useMemoFirebase(() => collection(db, 'investment_plans'), [db]);
+  const plansQuery = useMemoFirebase(() => db ? collection(db, 'investment_plans') : null, [db]);
   const { data: plans, isLoading: plansLoading } = useCollection(plansQuery);
 
-  const walletRef = useMemoFirebase(() => user ? doc(db, 'users', user.uid, 'wallet', 'wallet') : null, [db, user]);
+  const walletRef = useMemoFirebase(() => user && db ? doc(db, 'users', user.uid, 'wallet', 'wallet') : null, [db, user]);
   const { data: wallet } = useDoc(walletRef);
 
-  const configRef = useMemoFirebase(() => doc(db, 'system', 'config'), [db]);
+  const configRef = useMemoFirebase(() => db ? doc(db, 'system', 'config') : null, [db]);
   const { data: config } = useDoc(configRef);
 
   const [selectedPlan, setSelectedPlan] = useState<any>(null);
@@ -40,10 +39,9 @@ export default function InvestPage() {
   const SAR_RATE = config?.usdToSarRate || 3.75;
 
   const handleStartInvest = async () => {
-    if (!user || !wallet || !selectedPlan || !investAmount) return;
+    if (!user || !wallet || !selectedPlan || !investAmount || !db) return;
     const amount = parseFloat(investAmount);
     
-    // Check if amount >= minAmount (converted to selected currency)
     let minInCurrency = selectedPlan.minAmount || 20;
     if (investCurrency === 'YER') minInCurrency *= YER_RATE;
     if (investCurrency === 'SAR') minInCurrency *= SAR_RATE;
@@ -69,14 +67,12 @@ export default function InvestPage() {
 
       const expectedProfit = amount * ((selectedPlan.interestRate || 8) / 100);
 
-      // 1. Deduct balance
       const userWalletRef = doc(db, 'users', user.uid, 'wallet', 'wallet');
       updateDocumentNonBlocking(userWalletRef, {
         [balanceKey]: increment(-amount),
         updatedAt: serverTimestamp()
       });
 
-      // 2. Create investment record
       await addDoc(collection(db, 'users', user.uid, 'investments'), {
         planId: selectedPlan.id,
         planName: selectedPlan.name,
@@ -90,7 +86,6 @@ export default function InvestPage() {
         createdAt: serverTimestamp(),
       });
 
-      // 3. Record transaction
       await addDoc(collection(db, 'users', user.uid, 'transactions'), {
         initiatorUserId: user.uid,
         type: 'withdraw',

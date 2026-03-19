@@ -1,10 +1,9 @@
-
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Wallet, Mail, Lock, Loader2, Phone, MessageSquare, ShieldCheck, ChevronLeft } from 'lucide-react';
+import { Mail, Lock, Loader2, Phone, MessageSquare, ShieldCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
@@ -15,7 +14,7 @@ import { doc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { AppLogo } from '@/components/layout/AppLogo';
 
-export default function LoginPage() {
+function LoginContent() {
   const router = useRouter();
   const auth = useAuth();
   const db = useFirestore();
@@ -24,14 +23,15 @@ export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
-  // Fetch contact info from system config
-  const configRef = useMemoFirebase(() => doc(db, 'system', 'config'), [db]);
+  // Secure reference: only create if db is available
+  const configRef = useMemoFirebase(() => db ? doc(db, 'system', 'config') : null, [db]);
   const { data: config } = useDoc(configRef);
 
   const phone = config?.contactPhone || '775371829';
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!auth) return;
     setIsLoading(true);
     try {
       await signInWithEmailAndPassword(auth, email, password);
@@ -113,7 +113,6 @@ export default function LoginPage() {
           </CardContent>
         </Card>
 
-        {/* Support & Help Section */}
         <div className="space-y-4">
           <div className="flex items-center gap-4 px-4">
             <div className="h-[1px] flex-1 bg-gradient-to-l from-transparent via-muted-foreground/20 to-muted-foreground/20" />
@@ -153,5 +152,13 @@ export default function LoginPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-background"><Loader2 className="animate-spin text-primary" /></div>}>
+      <LoginContent />
+    </Suspense>
   );
 }

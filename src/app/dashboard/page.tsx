@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useEffect } from 'react';
@@ -23,7 +22,7 @@ export default function Dashboard() {
   const { toast } = useToast();
   const { user, isUserLoading } = useUser();
 
-  const userProfileRef = useMemoFirebase(() => user ? doc(db, 'users', user.uid) : null, [db, user]);
+  const userProfileRef = useMemoFirebase(() => user && db ? doc(db, 'users', user.uid) : null, [db, user]);
   const { data: profile, isLoading: profileLoading } = useDoc(userProfileRef);
 
   useEffect(() => {

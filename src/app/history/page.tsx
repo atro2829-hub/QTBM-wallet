@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useEffect } from 'react';
@@ -23,7 +22,6 @@ export default function HistoryPage() {
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
 
-  // Avoid hydration mismatch for default dates
   useEffect(() => {
     const defaultFrom = new Date();
     defaultFrom.setDate(defaultFrom.getDate() - 30);
@@ -32,7 +30,7 @@ export default function HistoryPage() {
   }, []);
 
   const transactionsQuery = useMemoFirebase(() => 
-    user ? query(collection(db, 'users', user.uid, 'transactions'), orderBy('createdAt', 'desc')) : null
+    user && db ? query(collection(db, 'users', user.uid, 'transactions'), orderBy('createdAt', 'desc')) : null
   , [db, user]);
 
   const { data: transactions, isLoading } = useCollection(transactionsQuery);
